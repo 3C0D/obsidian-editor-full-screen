@@ -1,4 +1,16 @@
-# Plugin Development Template
+# Editor Full Screen
+
+- Full screen mode: only the file content is shown. by default the status bar is hidden (see settings) (hotkey suggestion ctrl+alt+f)
+
+- Zen Mode: the navigation bar is still visible. (hotkey suggestion alt+f) 
+
+>**Behavior**:  
+To show the ribbon go to the left edge  
+To show headers go to the top edge
+
+It fits to the window content. So you can split, resize your OS window it will fit in
+
+![demo](cool.gif)
 
 ## Development
 
@@ -45,7 +57,3 @@ This plugin uses a template that automates the development and publication proce
 ### Additional Features
 
 - **obsidian-typings**: This template automatically includes obsidian-typings, providing access to additional types not present in the official API.
-
-### SASS Support
-
-For SASS support, check out the `sass-ready` branch in the original template repository. Note that this feature is not included in the standard template and won't be automatically available in derived plugins.

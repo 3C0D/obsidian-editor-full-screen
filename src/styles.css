@@ -1,8 +1,15 @@
-/*
+.hide-el {
+    display: none !important;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* .zen-mode {
+    margin-top: 5.62vh;
+} */
 
-If your plugin does not need CSS, delete this file.
 
-*/
+
+
+.zen-mode {
+    margin-top : 40px;
+    /* padding-top: 40px; */
+}

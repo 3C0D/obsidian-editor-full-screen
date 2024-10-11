@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin-modif",
+	"name": "editor-full-screen",
 	"version": "1.0.0",
-	"description": "modified sample plugin",
+	"description": "Full screen mode (for presentations) or Zen mode (focused writing). You can use resized OS windows, it will fit to the window.",
 	"main": "main.js",
 	"scripts": {
 		"start": "npm i && cross-env REAL=0 node scripts/start.mjs",
