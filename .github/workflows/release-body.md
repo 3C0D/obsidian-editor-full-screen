@@ -1,1 +1,1 @@
-new styles with transition and fix release missing files
+fix on release missing files
