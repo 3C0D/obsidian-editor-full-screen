@@ -1,1 +1,1 @@
-previous version saved before total refactoring
+New version with code improved
