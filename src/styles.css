@@ -1,15 +1,78 @@
+/* Classe pour cacher les éléments */
 .hide-el {
     display: none !important;
 }
 
-/* .zen-mode {
-    margin-top: 5.62vh;
+/* Styles pour le mode Zen */
+.zen-mode .workspace-leaf-content {
+    padding-top: 40px;
+}
+
+/* Styles pour le mode plein écran */
+/* .full-screen-mode .workspace-leaf-content {
+    padding-top: 20px;
 } */
 
+/* Styles communs pour les deux modes */
+/* .zen-mode .workspace-leaf-content,
+.full-screen-mode .workspace-leaf-content {
+    max-width: 700px;
+    margin: 0 auto;
+} */
 
-
-
-.zen-mode {
-    margin-top : 40px;
-    /* padding-top: 40px; */
+/* Ajustements pour l'affichage au survol */
+/* .workspace-ribbon:not(.hide-el),
+.titlebar:not(.hide-el),
+.workspace-tabs .workspace-tab-header-container:not(.hide-el),
+.status-bar:not(.hide-el) {
+    position: fixed;
+    z-index: 100;
 }
+
+.workspace-ribbon:not(.hide-el) {
+    left: 0;
+    top: 0;
+    height: 100vh;
+}
+
+.titlebar:not(.hide-el) {
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.workspace-tabs .workspace-tab-header-container:not(.hide-el) {
+    top: 22px;
+    left: 0;
+    right: 0;
+}
+
+.status-bar:not(.hide-el) {
+    bottom: 0;
+    left: 0;
+    right: 0;
+} */
+
+/* Transition douce pour l'apparition/disparition des éléments */
+/* .workspace-ribbon,
+.titlebar,
+.workspace-tabs .workspace-tab-header-container,
+.status-bar {
+    transition: opacity 0.3s ease-in-out;
+} */
+
+/* .hide-el {
+    opacity: 0;
+    pointer-events: none;
+} */
+
+/* Assurez-vous que le contenu principal ne soit pas masqué par les éléments en survol */
+/* .zen-mode .workspace-leaf-content,
+.full-screen-mode .workspace-leaf-content {
+    transition: padding 0.3s ease-in-out;
+} */
+
+/* .zen-mode .workspace-leaf-content:hover,
+.full-screen-mode .workspace-leaf-content:hover {
+    padding-top: 60px;
+} */

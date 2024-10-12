@@ -1,16 +1,23 @@
 # Editor Full Screen
 
-- Full screen mode: only the file content is shown. by default the status bar is hidden (see settings) (hotkey suggestion ctrl+alt+f)
+Enhance your Obsidian experience with two distraction-free editing modes.
 
-- Zen Mode: the navigation bar is still visible. (hotkey suggestion alt+f) 
+### Features
 
->**Behavior**:  
-To show the ribbon go to the left edge  
-To show headers go to the top edge
+- **Full Screen Mode**: Only file content shown, status bar hidden by default (Ctrl+Alt+F recommmanded)
+- **Zen Mode**: File content with navigation bar visible (Alt+F recommmanded)
 
-It fits to the window content. So you can split, resize your OS window it will fit in
+Move cursor to left edge to show ribbon, top edge for headers. Adapts to window resizing and splits.
 
-![demo](cool.gif)
+### Settings
+
+- Choose start-up mode: Normal, Full Screen, or Zen Mode
+
+### Usage
+
+Toggle modes via command palette or hotkeys. Customize hotkeys in Obsidian settings.
+
+Enjoy your focused writing experience!
 
 ## Development
 

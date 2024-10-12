@@ -1,12 +1,37 @@
-import { Plugin, View, WorkspaceSidedock } from "obsidian";
+import { Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, EFSSettingTab, EFSSettings } from "./settings";
 
+enum Shown {
+	left,
+	right,
+	bottom,
+	top,
+	null
+}
+
+interface ElementConfig {
+	selector: string;
+	side: Shown;
+	threshold: number;
+}
+
 export default class EditorFullScreen extends Plugin {
-	fullScreen = false;
-	zen = false;
+	isActive = false;
+	isZenMode = false;
+	shown: Shown = Shown.null;
+	hovered: Element | null = null;
 	settings: EFSSettings;
-	isRightSideOpen = false;
-	isLeftSideOpen = false;
+
+	elementsToToggle: { [key: string]: ElementConfig } = {
+		ribbon: { selector: ".workspace-ribbon", side: Shown.left, threshold: 20 },
+		header: { selector: ".mod-root .workspace-tabs .workspace-tab-header-container", side: Shown.top, threshold: 20 },
+		viewHeader: { selector: ".mod-root .workspace-leaf-content > .view-header", side: Shown.top, threshold: 20 },
+		titleBar: { selector: ".titlebar", side: Shown.top, threshold: 20 },
+		statusBar: { selector: ".status-bar", side: Shown.bottom, threshold: 20 }
+	};
+
+	commonElements = ["ribbon", "header", "titleBar"];
+	fullscreenElements = ["viewHeader", "statusBar"];
 
 	async onload() {
 		await this.loadSettings();
@@ -14,7 +39,7 @@ export default class EditorFullScreen extends Plugin {
 		this.addCommand({
 			id: "editor-full-screen",
 			name: "Full screen mode",
-			callback: () => this.toggleMode()
+			callback: () => this.toggleMode(false)
 		});
 		this.addCommand({
 			id: "editor-zen-mode",
@@ -22,9 +47,9 @@ export default class EditorFullScreen extends Plugin {
 			callback: () => this.toggleMode(true),
 		});
 		this.app.workspace.onLayoutReady(() => {
-			const mode = this.settings.modeAtStart;
-			if (mode === 'normal') return
-			this.toggleMode(mode === 'zen');
+			if (this.settings.modeAtStart !== 'normal') {
+				this.activateMode(this.settings.modeAtStart === 'zen');
+			}
 		});
 	}
 
@@ -36,176 +61,144 @@ export default class EditorFullScreen extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	toggleMode(zen = false) {
-		this.fullScreen = !this.fullScreen;
-		this.zen = zen;
-		const elements = getOtherEl(this);
-		conditionalToggle(this, this.fullScreen, zen, elements);
-
-		const actionsOnMove = (event: MouseEvent) => {
-			onMouseMove(event, this, elements);
-		}
-		if (this.fullScreen) {
-			document.addEventListener("mousemove", actionsOnMove);
+	toggleMode(zen: boolean) {
+		if (this.isActive) {
+			this.deactivateMode();
 		} else {
-			document.removeEventListener("mousemove", actionsOnMove);
+			this.activateMode(zen);
 		}
 	}
-}
 
-function conditionalToggle(plugin: EditorFullScreen, isfullscreen: boolean, zen: boolean, elements: Elements) {
-	toggleSibebars(plugin, isfullscreen)
-	toggleEls(isfullscreen, elements)
+	activateMode(zen: boolean) {
+		this.isActive = true;
+		this.isZenMode = zen;
+		const elementsToHide = [...this.commonElements, ...(zen ? [] : this.fullscreenElements)];
+		this.toggleElements(elementsToHide, true);
+		document.body.classList.add(zen ? 'zen-mode' : 'full-screen-mode');
+		document.addEventListener("mousemove", this.handleMouseMove);
+	}
 
-	const { viewHeader, titleBar, statusBar } = elements
+	deactivateMode() {
+		this.isActive = false;
+		this.isZenMode = false;
+		const allElements = [...this.commonElements, ...this.fullscreenElements];
+		this.toggleElements(allElements, false);
+		document.body.classList.remove('zen-mode', 'full-screen-mode');
+		document.removeEventListener("mousemove", this.handleMouseMove);
+		this.shown = Shown.null;
+		this.hovered = null;
+	}
+
+	toggleElements(elementKeys: string[], hide: boolean) {
+		elementKeys.forEach(key => {
+			const element = document.querySelector(this.elementsToToggle[key].selector);
+			if (element) {
+				element.classList.toggle('hide-el', hide);
+			}
+		});
+	}
+
+	handleMouseMove = (e: MouseEvent) => {
+		if (!this.isActive) return;
 	
-	if (zen) {
-		viewHeader?.classList.add('zen-mode')
-	} else {
-		viewHeader?.classList.toggle('hide-el', isfullscreen);
-		titleBar?.classList.toggle('hide-el', isfullscreen);
-		if (plugin.settings.hideStatusBar) {
-			statusBar?.classList.toggle('hide-el', isfullscreen);
+		const elementsToCheck = [...this.commonElements, ...(this.isZenMode ? [] : this.fullscreenElements)];
+	
+		if (this.isMouseNearEdge(e, 20)) {
+			// Show elements when mouse is near the edge
+			for (const key of elementsToCheck) {
+				const config = this.elementsToToggle[key];
+				const element = document.querySelector(config.selector) as HTMLElement;
+				if (!element) continue;
+				
+				if (this.isNearSide(e, config.side, config.threshold)) {
+					if (config.side === Shown.top) {
+						// Special handling for top elements: show all top elements together
+						elementsToCheck.forEach(k => {
+							const el = document.querySelector(this.elementsToToggle[k].selector) as HTMLElement;
+							if (el && this.elementsToToggle[k].side === Shown.top) {
+								el.classList.remove('hide-el');
+							}
+						});
+					} else {
+						element.classList.remove('hide-el');
+					}
+					this.shown = config.side;
+					this.hovered = element;
+				}
+			}
+		} else if (this.shown !== Shown.null){
+			// Performance optimization: Only check for hiding elements when returning from an edge
+			const topElements = elementsToCheck.filter(key => this.elementsToToggle[key].side === Shown.top);
+			const otherElements = elementsToCheck.filter(key => this.elementsToToggle[key].side !== Shown.top);
+			
+			// Handle top elements together
+			if (this.shown === Shown.top) {
+				const topRect = this.getCombinedRect(topElements);
+				if (this.isMouseOutsideElement(e, Shown.top, topRect)) {
+					topElements.forEach(key => {
+						const element = document.querySelector(this.elementsToToggle[key].selector) as HTMLElement;
+						if (element) element.classList.add('hide-el');
+					});
+					this.shown = Shown.null;
+					this.hovered = null;
+				}
+			}
+			
+			// Handle other elements individually
+			otherElements.forEach(key => {
+				const config = this.elementsToToggle[key];
+				const element = document.querySelector(config.selector) as HTMLElement;
+				if (!element || element.classList.contains('hide-el')) return;
+	
+				const rect = element.getBoundingClientRect();
+				if (this.isMouseOutsideElement(e, config.side, rect)) {
+					element.classList.add('hide-el');
+					if (this.hovered === element) {
+						this.shown = Shown.null;
+						this.hovered = null;
+					}
+				}
+			});
 		}
 	}
-	if (!isfullscreen) {
-		viewHeader?.classList.remove('zen-mode')
-		viewHeader?.classList.remove('hide-el')
-		titleBar?.classList.toggle('hide-el', isfullscreen);
-		plugin.isRightSideOpen = false;
-		plugin.isLeftSideOpen = false;
-		statusBar?.classList.remove('hide-el')
+	
+	// New helper method to get combined rectangle of top elements
+	getCombinedRect(topElementKeys: string[]): DOMRect {
+		let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+		topElementKeys.forEach(key => {
+			const element = document.querySelector(this.elementsToToggle[key].selector) as HTMLElement;
+			if (element) {
+				const rect = element.getBoundingClientRect();
+				left = Math.min(left, rect.left);
+				top = Math.min(top, rect.top);
+				right = Math.max(right, rect.right);
+				bottom = Math.max(bottom, rect.bottom);
+			}
+		});
+		return new DOMRect(left, top, right - left, bottom - top);
 	}
-}
 
-function toggleSibebars(plugin: EditorFullScreen, fullScreen: boolean) {
-	if (fullScreen) {
-		plugin.isLeftSideOpen = isOpen(getLeftSplit(plugin));
-		plugin.isRightSideOpen = isOpen(getRightSplit(plugin));
-		getLeftSplit(plugin).collapse();
-		getRightSplit(plugin).collapse();
-	} else {
-		if (plugin.isLeftSideOpen) {
-			getLeftSplit(plugin).expand();
-		}
-		if (plugin.isRightSideOpen) {
-			getRightSplit(plugin).expand();
+	isNearSide(e: MouseEvent, side: Shown, threshold: number): boolean {
+		switch (side) {
+			case Shown.left: return e.clientX <= threshold;
+			case Shown.right: return e.clientX >= window.innerWidth - threshold;
+			case Shown.top: return e.clientY <= threshold;
+			case Shown.bottom: return e.clientY >= window.innerHeight - threshold;
+			default: return false;
 		}
 	}
-}
 
-function toggleEls(value: boolean, elements: Elements) {
-	const { ribbon, rootHeader, titleBar} = elements
-	ribbon?.classList.toggle('hide-el', value);
-	rootHeader?.classList.toggle('hide-el', value);
-	titleBar?.classList.toggle('hide-el', value);
-}
+	isMouseNearEdge(e: MouseEvent, threshold: number): boolean {
+		return e.clientX <= threshold || e.clientX >= window.innerWidth - threshold || e.clientY <= threshold || e.clientY >= window.innerHeight - threshold;
+	}
 
-let leftEdgeThreshold = 20;
-let upEdgeThreshold = 20;
-const bottomEdgeThreshold = 200;
-const rightEdgeThreshold = 350;
-function onMouseMove(e: MouseEvent, plugin: EditorFullScreen, elements: Elements) {
-	const { leafContent, ribbon, rootHeader, viewHeader, titleBar, statusBar } = elements
-	if (!leafContent) return
-
-	const xPosition = e.clientX;
-	const yPosition = e.clientY;
-
-
-	if (plugin.fullScreen) {
-		if (ribbon && xPosition <= leftEdgeThreshold) {
-			ribbon.classList.remove('hide-el');
-			leftEdgeThreshold = 50
-		}
-		else {
-			if (ribbon && !this.fullScreen) {
-				ribbon.classList.add('hide-el');
-			}
-			leftEdgeThreshold = 15
-		}
-		if (yPosition <= upEdgeThreshold) {
-			rootHeader?.classList.remove('hide-el');
-			titleBar?.classList.remove('hide-el');
-			if (!plugin.zen) {
-				leafContent.classList.remove('zen-mode');
-				viewHeader?.classList.remove('hide-el');
-			}
-			upEdgeThreshold = 140;
-		} else {
-			if (!plugin.zen) {
-				viewHeader?.classList.add('hide-el');
-				leafContent.classList.add('zen-mode');
-			}
-			if (rootHeader && !this.fullScreen) {
-				rootHeader.classList.add('hide-el');
-				titleBar?.classList.add('hide-el');
-			}
-			upEdgeThreshold = 20;
-		}
-		if (statusBar && !plugin.zen && yPosition >= (window.innerHeight - bottomEdgeThreshold) && xPosition >= (window.innerWidth - rightEdgeThreshold)) {
-			statusBar.classList.remove('hide-el');
-		} else {
-			if (statusBar && !plugin.zen && !this.fullScreen) {
-				statusBar.classList.add('hide-el');
-			}
+	isMouseOutsideElement(e: MouseEvent, side: Shown, rect: DOMRect): boolean {
+		switch (side) {
+			case Shown.left: return e.clientX > rect.width;
+			case Shown.right: return e.clientX < rect.left;
+			case Shown.top: return e.clientY > rect.height;
+			case Shown.bottom: return e.clientY < rect.top;
+			default: return false;
 		}
 	}
 }
-
-interface Elements {
-	leafContent: HTMLElement | null;
-	ribbon: Element | null;
-	leftSplit: Element | null;
-	rightSplit: Element | null;
-	rootHeader: Element | null;
-	titleBar: Element | null;
-	workspaceLeafContent: Element | null;
-	viewHeader: Element | null;
-	statusBar: Element | null;
-}
-
-function getOtherEl(plugin: EditorFullScreen): Elements {
-	const activeView = plugin.app.workspace.getActiveViewOfType(View)
-	const leafContent = activeView?.containerEl ?? null;
-	console.log("leafContent", leafContent)
-	const ribbon = document.querySelector(".workspace-ribbon") ?? null;
-	const leftSplit = document.querySelector(".mod-left-split") ?? null;
-	const rightSplit = document.querySelector(".mod-right-split") ?? null;
-	const root = document?.querySelector(".mod-root") ?? null;
-	const rootHeader = root?.querySelector(".workspace-tabs .workspace-tab-header-container") ?? null;
-	console.log("rootHeader", rootHeader)
-	const titleBar = document?.querySelector(".titlebar") ?? null;
-	console.log("titleBar", titleBar)
-	const viewHeader = leafContent?.firstElementChild ?? null;
-	console.log("viewHeader", viewHeader)
-	const workspaceLeafContent = root?.querySelector(".workspace-leaf-content") ?? null;
-	console.log("workspaceLeafContent", workspaceLeafContent)
-	const statusBar = document.querySelector(".status-bar") ?? null;
-	console.log("statusBar", statusBar)
-
-	return {
-		leafContent,
-		ribbon,
-		leftSplit,
-		rightSplit,
-		rootHeader,
-		titleBar,
-		workspaceLeafContent,
-		viewHeader,
-		statusBar,
-	};
-}
-
-function getLeftSplit(plugin: EditorFullScreen) {
-	return plugin.app.workspace.leftSplit;
-}
-
-function getRightSplit(plugin: EditorFullScreen) {
-	return plugin.app.workspace.rightSplit;
-}
-
-function isOpen(side: WorkspaceSidedock) {
-	return !side.collapsed
-}
-
