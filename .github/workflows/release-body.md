@@ -1,1 +1,1 @@
-New version with code improved
+new styles with transition and fix release missing files
