@@ -1,5 +1,5 @@
 import { PluginSettingTab, App, Setting } from "obsidian";
-import EditorFullScreen from "./main";
+import EditorFullScreen from "./main.ts";
 
 export interface EFSSettings {
     modeAtStart: 'normal' | 'zen' | 'full';
@@ -7,14 +7,11 @@ export interface EFSSettings {
 
 export const DEFAULT_SETTINGS: EFSSettings = {
     modeAtStart: 'normal',
-}
+};
 
 export class EFSSettingTab extends PluginSettingTab {
-    plugin: EditorFullScreen;
-
-    constructor(app: App, plugin: EditorFullScreen) {
+    constructor(app: App, public plugin: EditorFullScreen) {
         super(app, plugin);
-        this.plugin = plugin;
     }
 
     display(): void {

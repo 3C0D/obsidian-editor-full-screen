@@ -4,8 +4,8 @@ Enhance your Obsidian experience with two distraction-free editing modes.
 
 ### Features
 
-- **Full Screen Mode**: Only file content shown, status bar hidden by default (Ctrl+Alt+F recommmanded)
-- **Zen Mode**: File content with navigation bar visible (Alt+F recommmanded)
+- **Full Screen Mode**: Only file content shown, status bar hidden by default (Ctrl+Alt+F recommended)
+- **Zen Mode**: File content with navigation bar visible (Alt+F recommended)
 
 Move cursor to left edge to show ribbon, top edge for headers. Adapts to window resizing and splits.
 
@@ -15,7 +15,16 @@ Move cursor to left edge to show ribbon, top edge for headers. Adapts to window 
 
 ### Usage
 
-Toggle modes via command palette or hotkeys. Customize hotkeys in Obsidian settings.
+**Commands**:
+
+- **Toggle Full screen mode**: Activate full screen, switch from zen to full screen, or deactivate if already in full screen
+- **Toggle Zen mode**: Activate zen, switch from full screen to zen, or deactivate if already in zen
+
+**Smart switching**: Direct switching between modes without going through normal mode.
+
+**Mouse Controls**: Move mouse to screen edges to temporarily reveal hidden interface elements.
+
+Use command palette or customize hotkeys in Obsidian settings.
 
 Enjoy your focused writing experience!
 
@@ -26,6 +35,7 @@ This plugin uses a template that automates the development and publication proce
 ### Environment Setup
 
 #### File Structure
+
 - All source files must be in the `src` folder:
   - `main.ts`
   - `styles.css`
@@ -33,7 +43,9 @@ This plugin uses a template that automates the development and publication proce
 > **Note:** If `styles.css` is accidentally placed in the root folder instead of `src`, it will be automatically moved to the correct location when running any development command. After building, a copy of `styles.css` will appear in the root folder as part of the normal release process.
 
 #### Development Options
+
 1. **Inside the vault's plugins folder:**
+
    - Delete the `.env` file
    - Run npm commands as usual
 

@@ -1,5 +1,6 @@
+import { type EFSSettings, EFSSettingTab, DEFAULT_SETTINGS } from "./settings.ts";
 import { Plugin } from "obsidian";
-import { DEFAULT_SETTINGS, EFSSettingTab, EFSSettings } from "./settings";
+
 
 enum Shown {
 	left,
@@ -33,17 +34,17 @@ export default class EditorFullScreen extends Plugin {
 	commonElements = ["ribbon", "header", "titleBar"];
 	fullscreenElements = ["viewHeader", "statusBar"];
 
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.addSettingTab(new EFSSettingTab(this.app, this));
 		this.addCommand({
 			id: "editor-full-screen",
-			name: "Full screen mode",
+			name: "Toggle Full screen mode",
 			callback: () => this.toggleMode(false)
 		});
 		this.addCommand({
 			id: "editor-zen-mode",
-			name: "Zen mode",
+			name: "Toggle Zen mode",
 			callback: () => this.toggleMode(true),
 		});
 		this.app.workspace.onLayoutReady(() => {
@@ -53,23 +54,49 @@ export default class EditorFullScreen extends Plugin {
 		});
 	}
 
-	async loadSettings() {
+	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
-	async saveSettings() {
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
 
-	toggleMode(zen: boolean) {
+	toggleMode(zen: boolean): void {
 		if (this.isActive) {
-			this.deactivateMode();
+			// If already active, switch to the requested mode or deactivate if same mode
+			if (this.isZenMode === zen) {
+				this.deactivateMode();
+			} else {
+				this.switchMode(zen);
+			}
 		} else {
 			this.activateMode(zen);
 		}
 	}
 
-	activateMode(zen: boolean) {
+	switchMode(zen: boolean): void {
+		// Switch between zen and full screen without deactivating
+		this.isZenMode = zen;
+
+		// Remove old class and add new one
+		document.body.classList.remove(zen ? 'full-screen-mode' : 'zen-mode');
+		document.body.classList.add(zen ? 'zen-mode' : 'full-screen-mode');
+
+		// Update elements visibility based on new mode
+		const elementsToHide = [...this.commonElements, ...(zen ? [] : this.fullscreenElements)];
+		const allElements = [...this.commonElements, ...this.fullscreenElements];
+
+		// First show all elements, then hide the ones for current mode
+		this.toggleElements(allElements, false);
+		this.toggleElements(elementsToHide, true);
+
+		// Reset shown state to ensure proper behavior
+		this.shown = Shown.null;
+		this.hovered = null;
+	}
+
+	activateMode(zen: boolean): void {
 		this.isActive = true;
 		this.isZenMode = zen;
 		const elementsToHide = [...this.commonElements, ...(zen ? [] : this.fullscreenElements)];
@@ -78,7 +105,7 @@ export default class EditorFullScreen extends Plugin {
 		document.addEventListener("mousemove", this.handleMouseMove);
 	}
 
-	deactivateMode() {
+	deactivateMode(): void {
 		this.isActive = false;
 		this.isZenMode = false;
 		const allElements = [...this.commonElements, ...this.fullscreenElements];
@@ -89,7 +116,7 @@ export default class EditorFullScreen extends Plugin {
 		this.hovered = null;
 	}
 
-	toggleElements(elementKeys: string[], hide: boolean) {
+	toggleElements(elementKeys: string[], hide: boolean): void {
 		elementKeys.forEach(key => {
 			const element = document.querySelector(this.elementsToToggle[key].selector);
 			if (element) {
@@ -98,18 +125,21 @@ export default class EditorFullScreen extends Plugin {
 		});
 	}
 
-	handleMouseMove = (e: MouseEvent) => {
+	handleMouseMove = (e: MouseEvent): void => {
 		if (!this.isActive) return;
-	
+
 		const elementsToCheck = [...this.commonElements, ...(this.isZenMode ? [] : this.fullscreenElements)];
-	
+
 		if (this.isMouseNearEdge(e, 20)) {
 			// Show elements when mouse is near the edge
+			let newShown = Shown.null;
+			let newHovered = null;
+
 			for (const key of elementsToCheck) {
 				const config = this.elementsToToggle[key];
 				const element = document.querySelector(config.selector) as HTMLElement;
 				if (!element) continue;
-				
+
 				if (this.isNearSide(e, config.side, config.threshold)) {
 					if (config.side === Shown.top) {
 						// Special handling for top elements: show all top elements together
@@ -122,15 +152,25 @@ export default class EditorFullScreen extends Plugin {
 					} else {
 						element.classList.remove('hide-el');
 					}
-					this.shown = config.side;
-					this.hovered = element;
+					newShown = config.side;
+					newHovered = element;
 				}
 			}
-		} else if (this.shown !== Shown.null){
+
+			// If we changed zones, hide elements from the previous zone
+			if (newShown !== Shown.null && this.shown !== Shown.null && newShown !== this.shown) {
+				this.hideElementsFromSide(this.shown, elementsToCheck);
+			}
+
+			if (newShown !== Shown.null) {
+				this.shown = newShown;
+				this.hovered = newHovered;
+			}
+		} else if (this.shown !== Shown.null) {
 			// Performance optimization: Only check for hiding elements when returning from an edge
 			const topElements = elementsToCheck.filter(key => this.elementsToToggle[key].side === Shown.top);
 			const otherElements = elementsToCheck.filter(key => this.elementsToToggle[key].side !== Shown.top);
-			
+
 			// Handle top elements together
 			if (this.shown === Shown.top) {
 				const topRect = this.getCombinedRect(topElements);
@@ -143,13 +183,13 @@ export default class EditorFullScreen extends Plugin {
 					this.hovered = null;
 				}
 			}
-			
+
 			// Handle other elements individually
 			otherElements.forEach(key => {
 				const config = this.elementsToToggle[key];
 				const element = document.querySelector(config.selector) as HTMLElement;
 				if (!element || element.classList.contains('hide-el')) return;
-	
+
 				const rect = element.getBoundingClientRect();
 				if (this.isMouseOutsideElement(e, config.side, rect)) {
 					element.classList.add('hide-el');
@@ -160,8 +200,28 @@ export default class EditorFullScreen extends Plugin {
 				}
 			});
 		}
+	};
+
+	hideElementsFromSide(side: Shown, elementsToCheck: string[]): void {
+		if (side === Shown.top) {
+			// Hide all top elements
+			const topElements = elementsToCheck.filter(key => this.elementsToToggle[key].side === Shown.top);
+			topElements.forEach(key => {
+				const element = document.querySelector(this.elementsToToggle[key].selector) as HTMLElement;
+				if (element) element.classList.add('hide-el');
+			});
+		} else {
+			// Hide elements from specific side
+			elementsToCheck.forEach(key => {
+				const config = this.elementsToToggle[key];
+				if (config.side === side) {
+					const element = document.querySelector(config.selector) as HTMLElement;
+					if (element) element.classList.add('hide-el');
+				}
+			});
+		}
 	}
-	
+
 	// New helper method to get combined rectangle of top elements
 	getCombinedRect(topElementKeys: string[]): DOMRect {
 		let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
