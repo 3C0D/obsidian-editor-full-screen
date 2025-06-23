@@ -1,5 +1,5 @@
 import { Plugin } from "obsidian";
-import { DEFAULT_SETTINGS, EFSSettingTab, EFSSettings } from "./settings";
+import { DEFAULT_SETTINGS, EFSSettingTab, type EFSSettings } from "./settings.ts";
 
 enum Shown {
 	left,
@@ -33,7 +33,7 @@ export default class EditorFullScreen extends Plugin {
 	commonElements = ["ribbon", "header", "titleBar"];
 	fullscreenElements = ["viewHeader", "statusBar"];
 
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.addSettingTab(new EFSSettingTab(this.app, this));
 		this.addCommand({
@@ -53,15 +53,15 @@ export default class EditorFullScreen extends Plugin {
 		});
 	}
 
-	async loadSettings() {
+	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
-	async saveSettings() {
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
 
-	toggleMode(zen: boolean) {
+	toggleMode(zen: boolean): void {
 		if (this.isActive) {
 			this.deactivateMode();
 		} else {
@@ -69,7 +69,7 @@ export default class EditorFullScreen extends Plugin {
 		}
 	}
 
-	activateMode(zen: boolean) {
+	activateMode(zen: boolean): void {
 		this.isActive = true;
 		this.isZenMode = zen;
 		const elementsToHide = [...this.commonElements, ...(zen ? [] : this.fullscreenElements)];
@@ -78,7 +78,7 @@ export default class EditorFullScreen extends Plugin {
 		document.addEventListener("mousemove", this.handleMouseMove);
 	}
 
-	deactivateMode() {
+	deactivateMode(): void {
 		this.isActive = false;
 		this.isZenMode = false;
 		const allElements = [...this.commonElements, ...this.fullscreenElements];
@@ -89,7 +89,7 @@ export default class EditorFullScreen extends Plugin {
 		this.hovered = null;
 	}
 
-	toggleElements(elementKeys: string[], hide: boolean) {
+	toggleElements(elementKeys: string[], hide: boolean): void {
 		elementKeys.forEach(key => {
 			const element = document.querySelector(this.elementsToToggle[key].selector);
 			if (element) {
@@ -98,7 +98,7 @@ export default class EditorFullScreen extends Plugin {
 		});
 	}
 
-	handleMouseMove = (e: MouseEvent) => {
+	handleMouseMove = (e: MouseEvent): void => {
 		if (!this.isActive) return;
 	
 		const elementsToCheck = [...this.commonElements, ...(this.isZenMode ? [] : this.fullscreenElements)];
@@ -160,7 +160,7 @@ export default class EditorFullScreen extends Plugin {
 				}
 			});
 		}
-	}
+	};
 	
 	// New helper method to get combined rectangle of top elements
 	getCombinedRect(topElementKeys: string[]): DOMRect {
