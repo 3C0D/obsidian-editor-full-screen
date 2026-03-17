@@ -40,10 +40,17 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		side: Side.left,
 		exitPadding: 10,
 	},
+	leftToggleBtn: {
+		// Sidebar toggle button visible when ribbon is collapsed
+		selector: ".sidebar-toggle-button.mod-left",
+		side: Side.top,
+		exitPadding: 10,
+	},
 };
 
 export const DEFAULT_SETTINGS: EFSSettings = {
-	modeAtStart: false,
+	modeAtStart: true,
+	wasActive: false,
 	hideRibbon: true,
 	hideTopBar: true,
 	hideViewHeader: false,

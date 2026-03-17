@@ -6,6 +6,9 @@ import { ELEMENT_CONFIGS } from "./constants.ts";
 // Set to 40 (vs original 20) to catch fast cursor movements reaching the edge in one frame
 const EDGE_THRESHOLD = 40;
 
+// Trigger zone for left side: ribbon width or fallback px
+const LEFT_TRIGGER_MAX = 40;
+
 // Extra bottom offset: avoids triggering status bar when Windows taskbar captures cursor
 const BOTTOM_EXTRA_MARGIN = 40;
 
@@ -69,7 +72,14 @@ export class HoverDetector {
 	};
 
 	private checkReveal(e: MouseEvent): void {
-		if (e.clientX <= EDGE_THRESHOLD) this.revealSide(Side.left);
+		// Use actual ribbon width if available, capped to avoid accidental triggers
+		const ribbonEl = document.querySelector(
+			".workspace-ribbon.side-dock-ribbon.mod-left",
+		) as HTMLElement | null;
+		const triggerWidth = ribbonEl
+			? Math.min(ribbonEl.getBoundingClientRect().width, LEFT_TRIGGER_MAX)
+			: LEFT_TRIGGER_MAX;
+		if (e.clientX <= triggerWidth) this.revealSide(Side.left);
 
 		// Top: generous threshold handles fast upward swipes
 		if (e.clientY <= EDGE_THRESHOLD) this.revealSide(Side.top);
@@ -99,10 +109,30 @@ export class HoverDetector {
 				// Re-enable sentinel pointer-events when top is hidden
 				if (side === Side.top && this.sentinelTop)
 					this.sentinelTop.style.pointerEvents = "all";
-				// Notify plugin of side hide
+				// Re-hide toggle button only if neither linked side is shown
+				if (side === Side.left && !this.shownSides.has(Side.top))
+					this.manager.hide("leftToggleBtn");
+				if (side === Side.top && !this.shownSides.has(Side.left))
+					this.manager.hide("leftToggleBtn");
 				this.onSideHide?.(side);
 			}
 		});
+
+		// Hide left side when cursor returns to editor (covers ribbon-only and ribbon+sidebar cases)
+		if (this.shownSides.has(Side.left) && this.isOverEditor(e)) {
+			this.manager.hideBySide(Side.left);
+			this.onSideHide?.(Side.left);
+			this.shownSides.delete(Side.left);
+			this.sidebarOpenedByHover = false;
+			if (!this.shownSides.has(Side.top))
+				this.manager.hide("leftToggleBtn");
+		}
+	}
+
+	private isOverEditor(e: MouseEvent): boolean {
+		return !!document
+			.elementFromPoint(e.clientX, e.clientY)
+			?.closest(".workspace-leaf.mod-active");
 	}
 
 	private revealSide(side: Side): void {
@@ -113,7 +143,8 @@ export class HoverDetector {
 			// Disable sentinel pointer-events when top is shown, so clicks pass through
 			if (side === Side.top && this.sentinelTop)
 				this.sentinelTop.style.pointerEvents = "none";
-			// Notify plugin of side reveal
+			// Button is a child of ribbon — show it on left hover too
+			if (side === Side.left) this.manager.show("leftToggleBtn");
 			this.onSideReveal?.(side);
 		}
 	}
@@ -124,23 +155,9 @@ export class HoverDetector {
 		const pad = this.manager.getExitPadding(side);
 
 		switch (side) {
-			case Side.left: {
-				// Extend exit zone to include the left sidebar panel when it's open
-				const sidebarEl = document.querySelector(
-					".workspace-sidedock.mod-left",
-				) as HTMLElement | null;
-				// Check ribbon collapsed state (is-collapsed is on the ribbon, not the sidedock)
-				const ribbonEl = document.querySelector(
-					".workspace-ribbon.side-dock-ribbon.mod-left",
-				) as HTMLElement | null;
-				const sidebarOpen =
-					ribbonEl && !ribbonEl.classList.contains("is-collapsed");
-				const sidebarRight =
-					sidebarOpen && sidebarEl
-						? sidebarEl.getBoundingClientRect().right
-						: rect.right;
-				return e.clientX > Math.max(rect.right, sidebarRight) + pad;
-			}
+			case Side.left:
+				// Left sidebar close is handled by isOverEditor in checkHide
+				return false;
 			case Side.right:
 				return e.clientX < rect.left - pad;
 			case Side.top:

@@ -41,6 +41,11 @@ export class EFSSettingTab extends PluginSettingTab {
 				desc: "File title bar inside the editor pane",
 			},
 			{
+				key: "hideLeftSidebar" as const,
+				label: "Left sidebar",
+				desc: "Toggles on ribbon hover, closes on editor return",
+			},
+			{
 				key: "hideRibbon" as const,
 				label: "Ribbon",
 				desc: "Left icon ribbon",
@@ -49,11 +54,6 @@ export class EFSSettingTab extends PluginSettingTab {
 				key: "hideStatusBar" as const,
 				label: "Status bar",
 				desc: "Bottom status bar",
-			},
-			{
-				key: "hideLeftSidebar" as const,
-				label: "Left sidebar",
-				desc: "File explorer, search, etc. Also forces ribbon hiding",
 			},
 		];
 

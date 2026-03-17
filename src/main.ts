@@ -13,7 +13,6 @@ export default class EditorFullScreen extends Plugin {
 
 	private elementManager: ElementManager;
 	private hoverDetector: HoverDetector;
-	private leftSidebarWasOpen = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -48,9 +47,8 @@ export default class EditorFullScreen extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
-			if (this.settings.modeAtStart) {
-				// Delay to ensure all workspace elements are rendered before hiding
-				setTimeout(() => this.activateMode(), 400);
+			if (this.settings.modeAtStart && this.settings.wasActive) {
+				this.activateMode();
 			}
 		});
 	}
@@ -71,7 +69,14 @@ export default class EditorFullScreen extends Plugin {
 	}
 
 	toggleMode(): void {
-		this.isActive ? this.deactivateMode() : this.activateMode();
+		if (this.isActive) {
+			this.deactivateMode();
+		} else {
+			this.activateMode();
+		}
+		// Persist last active state so modeAtStart can restore it
+		this.settings.wasActive = this.isActive;
+		this.saveSettings();
 	}
 
 	activateMode(): void {
@@ -80,17 +85,14 @@ export default class EditorFullScreen extends Plugin {
 
 		// Collapse left sidebar via API if enabled in settings
 		if (this.settings.hideLeftSidebar) {
-			const left = this.app.workspace
-				.leftSplit as WorkspaceSidedock;
-			this.leftSidebarWasOpen = !left.collapsed;
-			if (this.leftSidebarWasOpen) left.collapse();
+			const left = this.app.workspace.leftSplit as WorkspaceSidedock;
+			left.collapse();
 		}
 
 		// Set up callbacks for sidebar expand/collapse on hover
 		this.hoverDetector.onSideReveal = (side) => {
 			if (side === Side.left && this.settings.hideLeftSidebar) {
-				const left = this.app.workspace
-					.leftSplit as WorkspaceSidedock;
+				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				if (left.collapsed) {
 					left.expand();
 					this.hoverDetector.sidebarOpenedByHover = true;
@@ -103,8 +105,7 @@ export default class EditorFullScreen extends Plugin {
 				this.settings.hideLeftSidebar &&
 				this.hoverDetector.sidebarOpenedByHover
 			) {
-				const left = this.app.workspace
-					.leftSplit as WorkspaceSidedock;
+				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				left.collapse();
 				this.hoverDetector.sidebarOpenedByHover = false;
 			}
@@ -123,10 +124,9 @@ export default class EditorFullScreen extends Plugin {
 		this.hoverDetector.onSideReveal = null;
 		this.hoverDetector.onSideHide = null;
 
-		// Restore left sidebar to its previous state
-		if (this.settings.hideLeftSidebar && this.leftSidebarWasOpen) {
-			const left = this.app.workspace
-				.leftSplit as WorkspaceSidedock;
+		// Restore left sidebar on deactivate
+		if (this.settings.hideLeftSidebar) {
+			const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 			left.expand();
 		}
 
@@ -146,7 +146,7 @@ export default class EditorFullScreen extends Plugin {
 	private buildActiveKeys(): string[] {
 		const keys: string[] = [];
 		if (this.settings.hideTopBar) keys.push("tabHeader", "titleBar");
-		if (this.settings.hideRibbon) keys.push("ribbon");
+		if (this.settings.hideRibbon) keys.push("ribbon", "leftToggleBtn");
 		if (this.settings.hideViewHeader) keys.push("viewHeader");
 		if (this.settings.hideStatusBar) keys.push("statusBar");
 		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager

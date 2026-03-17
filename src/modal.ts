@@ -22,16 +22,16 @@ const TOGGLE_ITEMS: ToggleItem[] = [
 		desc: "File title bar inside the editor pane",
 	},
 	{
+		key: "hideLeftSidebar",
+		label: "Left sidebar",
+		desc: "Toggles on ribbon hover, closes on editor return",
+	},
+	{
 		key: "hideRibbon",
 		label: "Ribbon",
 		desc: "Left icon ribbon (auto-enabled with left sidebar)",
 	},
 	{ key: "hideStatusBar", label: "Status bar", desc: "Bottom status bar" },
-	{
-		key: "hideLeftSidebar",
-		label: "Left sidebar",
-		desc: "File explorer, search, etc. Also enables ribbon hiding",
-	},
 ];
 
 export class EFSModal extends Modal {
