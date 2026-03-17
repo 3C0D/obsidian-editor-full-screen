@@ -24,6 +24,7 @@
 	"author": "3C0D",
 	"license": "MIT",
 	"devDependencies": {
+		"@types/eslint": "latest",
 		"@types/fs-extra": "^11.0.4",
 		"@types/node": "^22.15.26",
 		"@types/semver": "^7.7.0",
@@ -34,17 +35,16 @@
 		"dedent": "^1.6.0",
 		"dotenv": "^16.4.5",
 		"esbuild": "latest",
+		"eslint": "latest",
+		"eslint-import-resolver-typescript": "latest",
 		"fs-extra": "^11.2.0",
+		"jiti": "latest",
 		"obsidian": "*",
 		"obsidian-typings": "^3.9.5",
 		"semver": "^7.7.2",
 		"tslib": "2.4.0",
 		"tsx": "^4.19.4",
-		"typescript": "^5.8.2",
-		"@types/eslint": "latest",
-		"eslint": "latest",
-		"eslint-import-resolver-typescript": "latest",
-		"jiti": "latest"
+		"typescript": "^5.8.2"
 	},
 	"engines": {
 		"npm": "please-use-yarn",

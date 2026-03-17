@@ -1,1 +1,28 @@
-.hide-el{opacity:0}.workspace .workspace-ribbon:hover,.workspace .workspace-ribbon:not(:hover),.mod-root .workspace-tabs .workspace-tab-header-container:hover,.mod-root .workspace-tabs .workspace-tab-header-container:not(:hover),.mod-root .workspace-leaf-content>.view-header:hover,.mod-root .workspace-leaf-content>.view-header:not(:hover),.titlebar:hover,.titlebar:not(:hover),.status-bar:hover,.status-bar:not(:hover){transition:opacity .25s ease}.full-screen-mode .workspace-leaf-content .hide-el{margin-top:-60px}
+/* Hidden state: invisible + non-interactive */
+.hide-el {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Smooth fade for all managed elements */
+.workspace-ribbon.mod-left,
+.mod-root .workspace-tabs .workspace-tab-header-container,
+.titlebar,
+.status-bar,
+.workspace-sidedock.mod-left {
+	transition: opacity 0.25s ease;
+}
+
+/* view-header needs separate transition declaration
+   because its selector is more specific */
+.mod-root .workspace-leaf-content > .view-header {
+	transition: opacity 0.25s ease;
+}
+
+/* When view-header is hidden, collapse its layout space so the
+   editor content starts at the top (opacity alone preserves height) */
+.efs-active .mod-root .workspace-leaf-content > .view-header.hide-el {
+	position: absolute;
+	height: 0;
+	overflow: hidden;
+}
