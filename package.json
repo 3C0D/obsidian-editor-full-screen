@@ -1,7 +1,7 @@
 {
 	"name": "editor-full-screen",
-	"version": "1.0.1",
-	"description": "Full screen mode (for presentations) or Zen mode (focused writing). You can use resized OS windows, it will fit to the window.",
+	"version": "2.0.0",
+	"description": "Full screen mode with configurable hidden elements via modal - including sidebars. Hidden elements appear on hover.",
 	"main": "main.js",
 	"scripts": {
 		"start": "yarn install && yarn dev",
