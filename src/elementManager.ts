@@ -14,6 +14,9 @@ export class ElementManager {
 	// when elements are collapsed to height:0 by CSS.
 	private naturalHeights: Map<string, number> = new Map();
 
+	// Snapshot of element rects taken before hiding, used for position-based reveal detection
+	private naturalRects: Map<string, DOMRect> = new Map();
+
 	/** Updates the active element keys. */
 	setActiveKeys(keys: string[]): void {
 		this.activeKeys = keys;
@@ -26,11 +29,13 @@ export class ElementManager {
 
 	/** Hides all active elements. */
 	hideAll(): void {
-		// Snapshot natural heights before hiding (needed for top/bottom exit detection)
+		// Snapshot natural heights and rects before hiding (needed for top/bottom exit detection)
 		this.activeKeys.forEach((key) => {
 			const el = this.getEl(key);
 			if (el && !this.naturalHeights.has(key)) {
-				this.naturalHeights.set(key, el.getBoundingClientRect().height);
+				const r = el.getBoundingClientRect();
+				this.naturalHeights.set(key, r.height);
+				this.naturalRects.set(key, r);
 			}
 		});
 		this.activeKeys.forEach((key) => this.hide(key));
@@ -40,6 +45,7 @@ export class ElementManager {
 	showAll(): void {
 		Object.keys(ELEMENT_CONFIGS).forEach((key) => this.show(key));
 		this.naturalHeights.clear(); // reset on full show
+		this.naturalRects.clear(); // reset on full show
 	}
 
 	/** Adds hide-el class to element. */
@@ -106,6 +112,11 @@ export class ElementManager {
 			.filter((k) => ELEMENT_CONFIGS[k].side === side)
 			.map((k) => ELEMENT_CONFIGS[k].exitPadding);
 		return pads.length ? Math.max(...pads) : 10;
+	}
+
+	/** Returns the snapshotted rect of an element (taken before hiding). */
+	getNaturalRect(key: string): DOMRect | null {
+		return this.naturalRects.get(key) ?? null;
 	}
 
 	/** Returns DOM element by key, or null. */

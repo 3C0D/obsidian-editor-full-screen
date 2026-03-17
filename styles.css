@@ -26,3 +26,22 @@
 	height: 0;
 	overflow: hidden;
 }
+
+/* When ribbon is hidden, keep only the sidebar toggle button visible.
+   Ribbon uses visibility instead of opacity so children can override it —
+   opacity:0 on a parent cannot be overridden by children */
+.efs-active .workspace-ribbon.side-dock-ribbon.mod-left.hide-el {
+	opacity: 1 !important;
+	visibility: hidden;
+}
+
+.efs-active
+	.workspace-ribbon.side-dock-ribbon.mod-left.hide-el
+	.sidebar-toggle-button {
+	visibility: visible;
+	pointer-events: all;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 100;
+}

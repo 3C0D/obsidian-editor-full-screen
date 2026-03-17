@@ -1,6 +1,7 @@
 import { Plugin, Menu, WorkspaceSidedock } from "obsidian";
 import { DEFAULT_SETTINGS } from "./constants.ts";
 import type { EFSSettings } from "./types.ts";
+import { Side } from "./types.ts";
 import { EFSSettingTab } from "./settings.ts";
 import { EFSModal } from "./modal.ts";
 import { ElementManager } from "./elementManager.ts";
@@ -47,7 +48,10 @@ export default class EditorFullScreen extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
-			if (this.settings.modeAtStart) this.activateMode();
+			if (this.settings.modeAtStart) {
+				// Delay to ensure all workspace elements are rendered before hiding
+				setTimeout(() => this.activateMode(), 400);
+			}
 		});
 	}
 
@@ -76,11 +80,35 @@ export default class EditorFullScreen extends Plugin {
 
 		// Collapse left sidebar via API if enabled in settings
 		if (this.settings.hideLeftSidebar) {
-			const left = (this.app.workspace as any)
+			const left = this.app.workspace
 				.leftSplit as WorkspaceSidedock;
 			this.leftSidebarWasOpen = !left.collapsed;
 			if (this.leftSidebarWasOpen) left.collapse();
 		}
+
+		// Set up callbacks for sidebar expand/collapse on hover
+		this.hoverDetector.onSideReveal = (side) => {
+			if (side === Side.left && this.settings.hideLeftSidebar) {
+				const left = this.app.workspace
+					.leftSplit as WorkspaceSidedock;
+				if (left.collapsed) {
+					left.expand();
+					this.hoverDetector.sidebarOpenedByHover = true;
+				}
+			}
+		};
+		this.hoverDetector.onSideHide = (side) => {
+			if (
+				side === Side.left &&
+				this.settings.hideLeftSidebar &&
+				this.hoverDetector.sidebarOpenedByHover
+			) {
+				const left = this.app.workspace
+					.leftSplit as WorkspaceSidedock;
+				left.collapse();
+				this.hoverDetector.sidebarOpenedByHover = false;
+			}
+		};
 
 		this.elementManager.hideAll();
 		document.body.classList.add("efs-active");
@@ -91,9 +119,13 @@ export default class EditorFullScreen extends Plugin {
 		this.isActive = false;
 		this.hoverDetector.stop();
 
+		// Clear callbacks
+		this.hoverDetector.onSideReveal = null;
+		this.hoverDetector.onSideHide = null;
+
 		// Restore left sidebar to its previous state
 		if (this.settings.hideLeftSidebar && this.leftSidebarWasOpen) {
-			const left = (this.app.workspace as any)
+			const left = this.app.workspace
 				.leftSplit as WorkspaceSidedock;
 			left.expand();
 		}

@@ -1,5 +1,6 @@
 import { Side } from "./types.ts";
 import { ElementManager } from "./elementManager.ts";
+import { ELEMENT_CONFIGS } from "./constants.ts";
 
 // px from viewport edge that triggers element reveal
 // Set to 40 (vs original 20) to catch fast cursor movements reaching the edge in one frame
@@ -11,6 +12,13 @@ const BOTTOM_EXTRA_MARGIN = 40;
 export class HoverDetector {
 	// Tracks which sides currently have their elements shown
 	private shownSides = new Set<Side>();
+
+	// Callbacks to notify plugin when sides are revealed/hidden
+	onSideReveal: ((side: Side) => void) | null = null;
+	onSideHide: ((side: Side) => void) | null = null;
+
+	// Tracks whether the left sidebar was opened by hover (not initial state)
+	sidebarOpenedByHover = false;
 
 	private sentinelTop: HTMLDivElement | null = null;
 
@@ -25,6 +33,7 @@ export class HoverDetector {
 		document.removeEventListener("mousemove", this.handleMouseMove);
 		this.removeSentinels();
 		this.shownSides.clear();
+		this.sidebarOpenedByHover = false;
 	}
 
 	// Thin transparent strips pinned to viewport edges.
@@ -77,6 +86,9 @@ export class HoverDetector {
 		const editorRight = this.getEditorRight();
 		if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD)
 			this.revealSide(Side.right);
+
+		// viewHeader is not at the viewport edge: detect by its stored position
+		this.checkPositionReveal("viewHeader", e);
 	}
 
 	private checkHide(e: MouseEvent): void {
@@ -84,6 +96,11 @@ export class HoverDetector {
 			if (this.isOutside(e, side)) {
 				this.manager.hideBySide(side);
 				this.shownSides.delete(side);
+				// Re-enable sentinel pointer-events when top is hidden
+				if (side === Side.top && this.sentinelTop)
+					this.sentinelTop.style.pointerEvents = "all";
+				// Notify plugin of side hide
+				this.onSideHide?.(side);
 			}
 		});
 	}
@@ -93,6 +110,11 @@ export class HoverDetector {
 		if (!this.shownSides.has(side)) {
 			this.manager.showBySide(side);
 			this.shownSides.add(side);
+			// Disable sentinel pointer-events when top is shown, so clicks pass through
+			if (side === Side.top && this.sentinelTop)
+				this.sentinelTop.style.pointerEvents = "none";
+			// Notify plugin of side reveal
+			this.onSideReveal?.(side);
 		}
 	}
 
@@ -102,8 +124,23 @@ export class HoverDetector {
 		const pad = this.manager.getExitPadding(side);
 
 		switch (side) {
-			case Side.left:
-				return e.clientX > rect.right + pad;
+			case Side.left: {
+				// Extend exit zone to include the left sidebar panel when it's open
+				const sidebarEl = document.querySelector(
+					".workspace-sidedock.mod-left",
+				) as HTMLElement | null;
+				// Check ribbon collapsed state (is-collapsed is on the ribbon, not the sidedock)
+				const ribbonEl = document.querySelector(
+					".workspace-ribbon.side-dock-ribbon.mod-left",
+				) as HTMLElement | null;
+				const sidebarOpen =
+					ribbonEl && !ribbonEl.classList.contains("is-collapsed");
+				const sidebarRight =
+					sidebarOpen && sidebarEl
+						? sidebarEl.getBoundingClientRect().right
+						: rect.right;
+				return e.clientX > Math.max(rect.right, sidebarRight) + pad;
+			}
 			case Side.right:
 				return e.clientX < rect.left - pad;
 			case Side.top:
@@ -112,6 +149,22 @@ export class HoverDetector {
 				return e.clientY < rect.top - pad;
 			default:
 				return false;
+		}
+	}
+
+	// For elements not sitting at a viewport edge, reveal their side
+	// when the cursor enters their natural (pre-hide) bounding rect.
+	private checkPositionReveal(key: string, e: MouseEvent): void {
+		if (!this.manager.getActiveKeys().includes(key)) return;
+		const rect = this.manager.getNaturalRect(key);
+		if (!rect) return;
+		if (
+			e.clientX >= rect.left &&
+			e.clientX <= rect.right &&
+			e.clientY >= rect.top - EDGE_THRESHOLD &&
+			e.clientY <= rect.bottom
+		) {
+			this.revealSide(ELEMENT_CONFIGS[key].side);
 		}
 	}
 

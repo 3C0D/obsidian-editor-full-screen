@@ -10,7 +10,7 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	},
 	tabHeader: {
 		// Tab strip at the top of the editor pane
-		selector: ".workspace-tab-header-container",
+		selector: ".mod-root .workspace-tabs .workspace-tab-header-container",
 		side: Side.top,
 		exitPadding: 10,
 	},
