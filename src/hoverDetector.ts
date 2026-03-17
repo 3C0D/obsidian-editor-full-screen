@@ -3,8 +3,8 @@ import { ElementManager } from "./elementManager.ts";
 import { ELEMENT_CONFIGS } from "./constants.ts";
 
 // px from viewport edge that triggers element reveal
-// Set to 40 (vs original 20) to catch fast cursor movements reaching the edge in one frame
-const EDGE_THRESHOLD = 40;
+// 30 is a balance between responsive entry and right sidebar close zone
+const EDGE_THRESHOLD = 30;
 
 // Trigger zone for left side: ribbon width or fallback px
 const LEFT_TRIGGER_MAX = 40;
@@ -13,14 +13,19 @@ const LEFT_TRIGGER_MAX = 40;
 const BOTTOM_EXTRA_MARGIN = 40;
 
 export class HoverDetector {
-	// Tracks which sides currently have their elements shown
+	// Tracks which sides currently have their elements shown.
+	// Used for elements managed by elementManager (left, top, bottom).
+	// Note: Right sidebar is NOT in elementManager's activeKeys, so we track
+	// its open state separately via rightSidebarOpen below.
 	private shownSides = new Set<Side>();
 
 	// Callbacks to notify plugin when sides are revealed/hidden
 	onSideReveal: ((side: Side) => void) | null = null;
 	onSideHide: ((side: Side) => void) | null = null;
 
-	// Tracks whether the right sidebar is currently open
+	// Tracks whether the right sidebar is currently open.
+	// Separate from shownSides because right sidebar is handled via Obsidian API
+	// (WorkspaceSidedock.expand/collapse), not by elementManager.
 	private rightSidebarOpen = false;
 
 	private sentinelTop: HTMLDivElement | null = null;
