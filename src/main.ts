@@ -96,7 +96,7 @@ export default class EditorFullScreen extends Plugin {
 		}
 
 		// Set up callbacks for sidebar expand/collapse on hover
-		this.hoverDetector.onSideReveal = (side) => {
+		this.hoverDetector.onSideReveal = (side: Side): void => {
 			if (side === Side.left && this.settings.hideLeftSidebar) {
 				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				if (left.collapsed) {
@@ -111,7 +111,7 @@ export default class EditorFullScreen extends Plugin {
 				}
 			}
 		};
-		this.hoverDetector.onSideHide = (side) => {
+		this.hoverDetector.onSideHide = (side: Side): void => {
 			if (
 				side === Side.left &&
 				this.settings.hideLeftSidebar &&

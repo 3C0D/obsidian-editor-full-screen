@@ -14,9 +14,9 @@ export class EFSSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Activate on start")
+			.setName("Persistent full screen")
 			.setDesc(
-				"Automatically enable full screen mode when Obsidian starts",
+				"Restore full screen mode on restart if it was active when Obsidian closed",
 			)
 			.addToggle((t) =>
 				t

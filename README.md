@@ -1,23 +1,43 @@
 # Editor Full Screen
 
-Enhance your Obsidian experience with two distraction-free editing modes.
+Full screen mode with configurable hidden elements via modal - including sidebars. Hidden elements appear on hover.
 
 ### Features
 
-- **Full Screen Mode**: Only file content shown, status bar hidden by default (Ctrl+Alt+F recommmanded)
-- **Zen Mode**: File content with navigation bar visible (Alt+F recommmanded)
+- **Single full screen mode** with individually configurable hidden elements
+- **Hover-to-reveal**: move cursor to viewport edges to temporarily show hidden elements
+- **Left sidebar**: collapses on activation, reveals on ribbon hover, hides again on editor return
+- **Right sidebar**: reveals with Shift + hover near right editor edge, hides on editor return
+- **Persistent state**: remembers whether full screen was active when Obsidian was closed
 
-Move cursor to left edge to show ribbon, top edge for headers. Adapts to window resizing and splits.
+### Hidden elements (configurable)
+
+| Element | Hover zone |
+| --- | --- |
+| Title bar + tab strip | Top edge |
+| View header (file title inside editor) | Its natural position |
+| Ribbon | Left edge |
+| Status bar | Bottom edge |
+| Left sidebar | Revealed with ribbon on left hover |
+| Right sidebar | Shift + right editor edge |
+
+When the ribbon is hidden, the sidebar toggle button remains visible in the top-left corner and appears with the tab strip on top hover.
 
 ### Settings
 
-- Choose start-up mode: Normal, Full Screen, or Zen Mode
+Access via the plugin settings tab or the **quick modal** (right-click in editor → "Full screen settings"):
+
+- **Persistent full screen**: restore full screen mode on restart if it was active when Obsidian closed
+- Per-element toggles (changes apply immediately if mode is active)
+- Enabling **left sidebar** also enables **ribbon** hiding automatically
 
 ### Usage
 
-Toggle modes via command palette or hotkeys. Customize hotkeys in Obsidian settings.
+Toggle full screen via the command palette (`Toggle full screen mode`) or assign a hotkey in Obsidian settings.
 
-Enjoy your focused writing experience!
+Open element settings via the command palette (`Full screen: open element settings`) or right-click in the editor.
+
+---
 
 ## Development
 
@@ -26,13 +46,23 @@ This plugin uses a template that automates the development and publication proce
 ### Environment Setup
 
 #### File Structure
-- All source files must be in the `src` folder:
-  - `main.ts`
-  - `styles.css`
+
+```
+src/
+  types.ts          — enums, interfaces
+  constants.ts      — element configs, default settings
+  elementManager.ts — DOM show/hide logic
+  hoverDetector.ts  — mouse movement + edge detection
+  modal.ts          — quick-settings modal
+  settings.ts       — PluginSettingTab
+main.ts
+styles.css
+```
 
 > **Note:** If `styles.css` is accidentally placed in the root folder instead of `src`, it will be automatically moved to the correct location when running any development command. After building, a copy of `styles.css` will appear in the root folder as part of the normal release process.
 
 #### Development Options
+
 1. **Inside the vault's plugins folder:**
    - Delete the `.env` file
    - Run npm commands as usual
