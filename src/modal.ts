@@ -6,7 +6,8 @@ type BooleanSettingKey =
 	| "hideTopBar"
 	| "hideViewHeader"
 	| "hideStatusBar"
-	| "hideLeftSidebar";
+	| "hideLeftSidebar"
+	| "hideRightSidebar";
 
 interface ToggleItem {
 	key: BooleanSettingKey;
@@ -25,6 +26,11 @@ const TOGGLE_ITEMS: ToggleItem[] = [
 		key: "hideLeftSidebar",
 		label: "Left sidebar",
 		desc: "Toggles on ribbon hover, closes on editor return",
+	},
+	{
+		key: "hideRightSidebar",
+		label: "Right sidebar",
+		desc: "Shift + hover right edge to toggle",
 	},
 	{
 		key: "hideRibbon",

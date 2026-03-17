@@ -46,6 +46,11 @@ export class EFSSettingTab extends PluginSettingTab {
 				desc: "Toggles on ribbon hover, closes on editor return",
 			},
 			{
+				key: "hideRightSidebar" as const,
+				label: "Right sidebar",
+				desc: "Shift + hover right edge to toggle",
+			},
+			{
 				key: "hideRibbon" as const,
 				label: "Ribbon",
 				desc: "Left icon ribbon",

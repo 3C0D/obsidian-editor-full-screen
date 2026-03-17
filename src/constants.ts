@@ -46,6 +46,11 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		side: Side.top,
 		exitPadding: 10,
 	},
+	rightSidebar: {
+		selector: ".workspace-sidedock.mod-right",
+		side: Side.right,
+		exitPadding: 10,
+	},
 };
 
 export const DEFAULT_SETTINGS: EFSSettings = {
@@ -56,4 +61,5 @@ export const DEFAULT_SETTINGS: EFSSettings = {
 	hideViewHeader: false,
 	hideStatusBar: true,
 	hideLeftSidebar: false,
+	hideRightSidebar: false,
 };

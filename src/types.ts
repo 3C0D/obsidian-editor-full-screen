@@ -22,4 +22,5 @@ export interface EFSSettings {
 	hideViewHeader: boolean;
 	hideStatusBar: boolean;
 	hideLeftSidebar: boolean;
+	hideRightSidebar: boolean;
 }

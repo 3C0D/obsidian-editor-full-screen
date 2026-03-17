@@ -89,6 +89,12 @@ export default class EditorFullScreen extends Plugin {
 			left.collapse();
 		}
 
+		// Collapse right sidebar via API if enabled in settings
+		if (this.settings.hideRightSidebar) {
+			const right = this.app.workspace.rightSplit as WorkspaceSidedock;
+			right.collapse();
+		}
+
 		// Set up callbacks for sidebar expand/collapse on hover
 		this.hoverDetector.onSideReveal = (side) => {
 			if (side === Side.left && this.settings.hideLeftSidebar) {
@@ -96,6 +102,13 @@ export default class EditorFullScreen extends Plugin {
 				if (left.collapsed) {
 					left.expand();
 					this.hoverDetector.sidebarOpenedByHover = true;
+				}
+			}
+			if (side === Side.right && this.settings.hideRightSidebar) {
+				const right = this.app.workspace
+					.rightSplit as WorkspaceSidedock;
+				if (right.collapsed) {
+					right.expand();
 				}
 			}
 		};
@@ -108,6 +121,11 @@ export default class EditorFullScreen extends Plugin {
 				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				left.collapse();
 				this.hoverDetector.sidebarOpenedByHover = false;
+			}
+			if (side === Side.right && this.settings.hideRightSidebar) {
+				const right = this.app.workspace
+					.rightSplit as WorkspaceSidedock;
+				right.collapse();
 			}
 		};
 
@@ -128,6 +146,12 @@ export default class EditorFullScreen extends Plugin {
 		if (this.settings.hideLeftSidebar) {
 			const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 			left.expand();
+		}
+
+		// Restore right sidebar on deactivate
+		if (this.settings.hideRightSidebar) {
+			const right = this.app.workspace.rightSplit as WorkspaceSidedock;
+			right.expand();
 		}
 
 		this.elementManager.showAll();

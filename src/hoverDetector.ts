@@ -23,6 +23,12 @@ export class HoverDetector {
 	// Tracks whether the left sidebar was opened by hover (not initial state)
 	sidebarOpenedByHover = false;
 
+	// Tracks whether the right sidebar was opened by hover (not initial state)
+	private rightSidebarOpen = false;
+
+	// Cooldown to prevent rapid re-triggering after close
+	private rightSidebarCooldown = false;
+
 	private sentinelTop: HTMLDivElement | null = null;
 
 	constructor(private manager: ElementManager) {}
@@ -37,6 +43,8 @@ export class HoverDetector {
 		this.removeSentinels();
 		this.shownSides.clear();
 		this.sidebarOpenedByHover = false;
+		this.rightSidebarOpen = false;
+		this.rightSidebarCooldown = false;
 	}
 
 	// Thin transparent strips pinned to viewport edges.
@@ -91,11 +99,25 @@ export class HoverDetector {
 		)
 			this.revealSide(Side.bottom);
 
-		// Right: anchor to editor right edge (cm-scroller), not viewport.
-		// This keeps the zone stable whether the right sidebar is open or not.
-		const editorRight = this.getEditorRight();
-		if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD)
-			this.revealSide(Side.right);
+		// Right sidebar: Shift + near right edge → open once, then wait for editor return
+		if (
+			!this.rightSidebarOpen &&
+			!this.rightSidebarCooldown &&
+			e.shiftKey
+		) {
+			const editorRight = this.getEditorRight();
+			if (
+				editorRight !== null &&
+				e.clientX >= editorRight - EDGE_THRESHOLD
+			) {
+				this.rightSidebarOpen = true;
+				this.rightSidebarCooldown = true;
+				this.onSideReveal?.(Side.right);
+				setTimeout(() => {
+					this.rightSidebarCooldown = false;
+				}, 1000);
+			}
+		}
 
 		// viewHeader is not at the viewport edge: detect by its stored position
 		this.checkPositionReveal("viewHeader", e);
@@ -118,14 +140,28 @@ export class HoverDetector {
 			}
 		});
 
-		// Hide left side when cursor returns to editor (covers ribbon-only and ribbon+sidebar cases)
-		if (this.shownSides.has(Side.left) && this.isOverEditor(e)) {
-			this.manager.hideBySide(Side.left);
-			this.onSideHide?.(Side.left);
-			this.shownSides.delete(Side.left);
-			this.sidebarOpenedByHover = false;
-			if (!this.shownSides.has(Side.top))
-				this.manager.hide("leftToggleBtn");
+		// Hide left and right sides when cursor returns to editor
+		if (this.isOverEditor(e)) {
+			if (this.shownSides.has(Side.left)) {
+				this.manager.hideBySide(Side.left);
+				this.onSideHide?.(Side.left);
+				this.shownSides.delete(Side.left);
+				this.sidebarOpenedByHover = false;
+				if (!this.shownSides.has(Side.top))
+					this.manager.hide("leftToggleBtn");
+			}
+			// Right sidebar: close only if cursor was NOT already near the trigger zone
+			// (prevents immediate close when opening from editor edge)
+			if (this.rightSidebarOpen) {
+				const editorRight = this.getEditorRight();
+				const wasNearRightEdge =
+					editorRight !== null &&
+					e.clientX >= editorRight - EDGE_THRESHOLD;
+				if (!wasNearRightEdge) {
+					this.rightSidebarOpen = false;
+					this.onSideHide?.(Side.right);
+				}
+			}
 		}
 	}
 
@@ -159,7 +195,8 @@ export class HoverDetector {
 				// Left sidebar close is handled by isOverEditor in checkHide
 				return false;
 			case Side.right:
-				return e.clientX < rect.left - pad;
+				// Right sidebar close is handled by isOverEditor in checkHide
+				return false;
 			case Side.top:
 				return e.clientY > rect.bottom + pad;
 			case Side.bottom:
