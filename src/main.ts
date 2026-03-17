@@ -8,6 +8,7 @@ import { ElementManager } from "./elementManager.ts";
 import { HoverDetector } from "./hoverDetector.ts";
 
 export default class EditorFullScreen extends Plugin {
+	// Tracks whether full screen mode is currently active 
 	isActive = false;
 	settings: EFSSettings;
 

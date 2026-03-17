@@ -7,7 +7,7 @@ import { ELEMENT_CONFIGS } from "./constants.ts";
  * Provides utilities for computing combined bounding rects and exit padding for hover detection.
  */
 export class ElementManager {
-	/** Active element keys. */
+	// Active element keys.
 	private activeKeys: string[] = [];
 
 	// Snapshot of element heights taken before hiding, used for exit detection

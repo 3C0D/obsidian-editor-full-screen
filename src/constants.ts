@@ -1,7 +1,6 @@
 import { Side } from "./types.ts";
 import type { ElementConfig, EFSSettings } from "./types.ts";
 
-// NOTE: verify .workspace-sidedock.mod-left in Obsidian DevTools if left sidebar doesn't hide
 export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	ribbon: {
 		selector: ".workspace-ribbon.side-dock-ribbon.mod-left",
@@ -15,7 +14,7 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		exitPadding: 10,
 	},
 	titleBar: {
-		// OS-level title bar
+		// OS-window buttons
 		selector: ".titlebar",
 		side: Side.top,
 		exitPadding: 10,
@@ -33,15 +32,14 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		exitPadding: 30,
 	},
 	leftSidebar: {
-		// Left panel (file explorer, search, etc.)
-		// Managed via Obsidian API (collapse/expand), not CSS opacity.
+		// Managed via Obsidian API (collapse/expand).
 		// selector is kept for reference only — not used for hide/show.
 		selector: ".workspace-sidedock.mod-left",
 		side: Side.left,
 		exitPadding: 10,
 	},
 	leftToggleBtn: {
-		// Sidebar toggle button visible when ribbon is collapsed
+		// Sidebar toggle button, we need it when ribbon is collapsed
 		selector: ".sidebar-toggle-button.mod-left",
 		side: Side.top,
 		exitPadding: 10,

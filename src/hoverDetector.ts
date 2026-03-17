@@ -12,6 +12,9 @@ const LEFT_TRIGGER_MAX = 40;
 // Extra bottom offset: avoids triggering status bar when Windows taskbar captures cursor
 const BOTTOM_EXTRA_MARGIN = 40;
 
+/**
+ * Detects cursor proximity to viewport edges and manages revealing/hiding of UI elements accordingly.
+ */
 export class HoverDetector {
 	// Tracks which sides currently have their elements shown.
 	// Used for elements managed by elementManager (left, top, bottom).
@@ -28,15 +31,22 @@ export class HoverDetector {
 	// (WorkspaceSidedock.expand/collapse), not by elementManager.
 	private rightSidebarOpen = false;
 
+	// Sentinel elements for catching fast mouse entries at viewport edges (especially top).
 	private sentinelTop: HTMLDivElement | null = null;
 
 	constructor(private manager: ElementManager) {}
 
+	/**
+	 * Starts hover detection by adding mousemove listener and creating sentinels.
+	 */
 	start(): void {
 		document.addEventListener("mousemove", this.handleMouseMove);
 		this.createSentinels();
 	}
 
+	/**
+	 * Stops hover detection by removing mousemove listener and sentinels, and resetting state.
+	 */
 	stop(): void {
 		document.removeEventListener("mousemove", this.handleMouseMove);
 		this.removeSentinels();
@@ -44,10 +54,15 @@ export class HoverDetector {
 		this.rightSidebarOpen = false;
 	}
 
-	// Thin transparent strips pinned to viewport edges.
-	// They catch fast cursor entries that mousemove misses because
-	// the cursor jumps from outside the window straight into the strip
-	// before any mousemove fires on document.
+	/**
+	 * Creates sentinel elements at viewport edges to detect fast mouse entries that mousemove might miss.
+	 * Thin transparent strips pinned to viewport edges.
+	 * 
+	 * When the cursor moves very quickly from outside the window toward the top edge,
+	 * the mousemove event may not fire in time to detect the entry. The sentinel acts as a
+	 * safety net: the cursor can jump from outside the window straight into the sentinel
+	 * strip before any mousemove event reaches the document handler.
+	 */
 	private createSentinels(): void {
 		this.sentinelTop = document.createElement("div");
 		Object.assign(this.sentinelTop.style, {
