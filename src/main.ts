@@ -101,7 +101,6 @@ export default class EditorFullScreen extends Plugin {
 				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				if (left.collapsed) {
 					left.expand();
-					this.hoverDetector.sidebarOpenedByHover = true;
 				}
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
@@ -116,11 +115,10 @@ export default class EditorFullScreen extends Plugin {
 			if (
 				side === Side.left &&
 				this.settings.hideLeftSidebar &&
-				this.hoverDetector.sidebarOpenedByHover
+				this.hoverDetector.sidesHave(Side.left)
 			) {
 				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
 				left.collapse();
-				this.hoverDetector.sidebarOpenedByHover = false;
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
 				const right = this.app.workspace

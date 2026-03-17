@@ -20,14 +20,8 @@ export class HoverDetector {
 	onSideReveal: ((side: Side) => void) | null = null;
 	onSideHide: ((side: Side) => void) | null = null;
 
-	// Tracks whether the left sidebar was opened by hover (not initial state)
-	sidebarOpenedByHover = false;
-
-	// Tracks whether the right sidebar was opened by hover (not initial state)
+	// Tracks whether the right sidebar is currently open
 	private rightSidebarOpen = false;
-
-	// Cooldown to prevent rapid re-triggering after close
-	private rightSidebarCooldown = false;
 
 	private sentinelTop: HTMLDivElement | null = null;
 
@@ -42,9 +36,7 @@ export class HoverDetector {
 		document.removeEventListener("mousemove", this.handleMouseMove);
 		this.removeSentinels();
 		this.shownSides.clear();
-		this.sidebarOpenedByHover = false;
 		this.rightSidebarOpen = false;
-		this.rightSidebarCooldown = false;
 	}
 
 	// Thin transparent strips pinned to viewport edges.
@@ -100,22 +92,14 @@ export class HoverDetector {
 			this.revealSide(Side.bottom);
 
 		// Right sidebar: Shift + near right edge → open once, then wait for editor return
-		if (
-			!this.rightSidebarOpen &&
-			!this.rightSidebarCooldown &&
-			e.shiftKey
-		) {
+		if (!this.rightSidebarOpen && e.shiftKey) {
 			const editorRight = this.getEditorRight();
 			if (
 				editorRight !== null &&
 				e.clientX >= editorRight - EDGE_THRESHOLD
 			) {
 				this.rightSidebarOpen = true;
-				this.rightSidebarCooldown = true;
 				this.onSideReveal?.(Side.right);
-				setTimeout(() => {
-					this.rightSidebarCooldown = false;
-				}, 1000);
 			}
 		}
 
@@ -146,7 +130,6 @@ export class HoverDetector {
 				this.manager.hideBySide(Side.left);
 				this.onSideHide?.(Side.left);
 				this.shownSides.delete(Side.left);
-				this.sidebarOpenedByHover = false;
 				if (!this.shownSides.has(Side.top))
 					this.manager.hide("leftToggleBtn");
 			}
@@ -227,5 +210,10 @@ export class HoverDetector {
 	private getEditorRight(): number | null {
 		const el = document.querySelector(".cm-scroller");
 		return el ? el.getBoundingClientRect().right : null;
+	}
+
+	// Check if a side currently has its elements shown
+	sidesHave(side: Side): boolean {
+		return this.shownSides.has(side);
 	}
 }
