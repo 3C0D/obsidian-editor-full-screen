@@ -3,8 +3,7 @@ import { ElementManager } from "./elementManager.ts";
 import { ELEMENT_CONFIGS } from "./constants.ts";
 
 // px from viewport edge that triggers element reveal
-// 30 is a balance between responsive entry and right sidebar close zone
-const EDGE_THRESHOLD = 30;
+const EDGE_THRESHOLD = 40;
 
 // Trigger zone for left side: ribbon width or fallback px
 const LEFT_TRIGGER_MAX = 40;
@@ -14,6 +13,11 @@ const BOTTOM_EXTRA_MARGIN = 40;
 
 /**
  * Detects cursor proximity to viewport edges and manages revealing/hiding of UI elements accordingly.
+ *
+ * Callbacks:
+ * - onSideReveal: Called when a side should be revealed (cursor approaches edge)
+ * - onSideHide: Called when a side should be hidden (cursor leaves element area)
+ * @param manager - The ElementManager instance to control element visibility and get positions.
  */
 export class HoverDetector {
 	// Tracks which sides currently have their elements shown.
@@ -34,9 +38,6 @@ export class HoverDetector {
 	// Sentinel elements for catching fast mouse entries at viewport edges (especially top).
 	private sentinelTop: HTMLDivElement | null = null;
 
-	/**
-	 * @param manager - ElementManager instance for managing element visibility.
-	 */
 	constructor(private manager: ElementManager) {}
 
 	/**
@@ -130,6 +131,9 @@ export class HoverDetector {
 		this.checkPositionReveal("viewHeader", e);
 	}
 
+	/**
+	 * Checks if the cursor has moved outside currently shown sides to hide them, or if it has returned to the editor area to hide sidebars.
+	 */
 	private checkHide(e: MouseEvent): void {
 		this.shownSides.forEach((side) => {
 			if (this.isOutside(e, side)) {

@@ -1,4 +1,4 @@
-import { Plugin, Menu, WorkspaceSidedock } from "obsidian";
+import { Plugin, Menu } from "obsidian";
 import { DEFAULT_SETTINGS } from "./constants.ts";
 import type { EFSSettings } from "./types.ts";
 import { Side } from "./types.ts";
@@ -6,6 +6,11 @@ import { EFSSettingTab } from "./settings.ts";
 import { EFSModal } from "./modal.ts";
 import { ElementManager } from "./elementManager.ts";
 import { HoverDetector } from "./hoverDetector.ts";
+import {
+	collapseSidebar,
+	expandSidebar,
+	updateSidebarVisibility,
+} from "./sidebarUtils.ts";
 
 /**
  * Main plugin class for Editor Full Screen.
@@ -107,32 +112,21 @@ export default class EditorFullScreen extends Plugin {
 		this.isActive = true;
 		this.elementManager.setActiveKeys(this.buildActiveKeys());
 
-		// Collapse left sidebar via API if enabled in settings
+		// Collapse sidebars if enabled in settings
 		if (this.settings.hideLeftSidebar) {
-			const left = this.app.workspace.leftSplit as WorkspaceSidedock;
-			left.collapse();
+			collapseSidebar(this.app, "left");
 		}
-
-		// Collapse right sidebar via API if enabled in settings
 		if (this.settings.hideRightSidebar) {
-			const right = this.app.workspace.rightSplit as WorkspaceSidedock;
-			right.collapse();
+			collapseSidebar(this.app, "right");
 		}
 
 		// Set up callbacks for sidebar expand/collapse on hover
 		this.hoverDetector.onSideReveal = (side: Side): void => {
 			if (side === Side.left && this.settings.hideLeftSidebar) {
-				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
-				if (left.collapsed) {
-					left.expand();
-				}
+				expandSidebar(this.app, "left");
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
-				const right = this.app.workspace
-					.rightSplit as WorkspaceSidedock;
-				if (right.collapsed) {
-					right.expand();
-				}
+				expandSidebar(this.app, "right");
 			}
 		};
 		this.hoverDetector.onSideHide = (side: Side): void => {
@@ -141,13 +135,10 @@ export default class EditorFullScreen extends Plugin {
 				this.settings.hideLeftSidebar &&
 				this.hoverDetector.sidesHave(Side.left)
 			) {
-				const left = this.app.workspace.leftSplit as WorkspaceSidedock;
-				left.collapse();
+				collapseSidebar(this.app, "left");
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
-				const right = this.app.workspace
-					.rightSplit as WorkspaceSidedock;
-				right.collapse();
+				collapseSidebar(this.app, "right");
 			}
 		};
 
@@ -167,16 +158,12 @@ export default class EditorFullScreen extends Plugin {
 		this.hoverDetector.onSideReveal = null;
 		this.hoverDetector.onSideHide = null;
 
-		// Restore left sidebar on deactivate
+		// Restore sidebars on deactivate
 		if (this.settings.hideLeftSidebar) {
-			const left = this.app.workspace.leftSplit as WorkspaceSidedock;
-			left.expand();
+			expandSidebar(this.app, "left");
 		}
-
-		// Restore right sidebar on deactivate
 		if (this.settings.hideRightSidebar) {
-			const right = this.app.workspace.rightSplit as WorkspaceSidedock;
-			right.expand();
+			expandSidebar(this.app, "right");
 		}
 
 		this.elementManager.showAll();
@@ -191,6 +178,9 @@ export default class EditorFullScreen extends Plugin {
 		this.elementManager.showAll();
 		this.elementManager.setActiveKeys(this.buildActiveKeys());
 		this.elementManager.hideAll();
+
+		// Update sidebar visibility based on current settings
+		updateSidebarVisibility(this);
 	}
 
 	/**
