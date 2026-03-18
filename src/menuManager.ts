@@ -3,6 +3,12 @@ import type EditorFullScreen from './main.ts';
 import { EFSModal } from './modal.ts';
 
 /**
+ * Shared menu key for reading mode context menu.
+ * Multiple plugins can add items to the same menu using this convention.
+ */
+const SHARED_READING_MENU_KEY = '_sharedReadingMenu';
+
+/**
  * Registers all context menus for the plugin.
  * Handles both editor context menu and reading mode context menu.
  */
@@ -15,16 +21,30 @@ export function registerMenus(plugin: EditorFullScreen): void {
 	);
 
 	// Reading mode context menu (right-click in reading mode)
-	plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
-		const target = e.target as HTMLElement;
-		// Only in reading mode, and no text selected
-		if (!target.closest('.markdown-reading-view')) return;
-		if (window.getSelection()?.toString()) return;
+	// Uses shared menu pattern to allow multiple plugins to add items
+	plugin.app.workspace.onLayoutReady(() => {
+		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.markdown-reading-view')) return;
+			if (window.getSelection()?.toString()) return;
 
-		e.preventDefault();
-		const menu = new Menu();
-		addReadingModeMenuItems(plugin, menu);
-		menu.showAtMouseEvent(e);
+			e.preventDefault();
+			const w = window as any;
+
+			if (w[SHARED_READING_MENU_KEY]) {
+				addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
+				return;
+			}
+
+			w[SHARED_READING_MENU_KEY] = new Menu();
+			setTimeout(() => {
+				const menu = w[SHARED_READING_MENU_KEY];
+				delete w[SHARED_READING_MENU_KEY];
+				menu.showAtMouseEvent(e);
+			}, 0);
+
+			addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
+		});
 	});
 }
 

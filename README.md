@@ -51,12 +51,25 @@ src/
   elementManager.ts — DOM show/hide logic
   hoverDetector.ts  — mouse movement + edge detection
   modal.ts          — quick-settings modal
+  menuManager.ts    — context menus (editor + reading mode)
   settings.ts       — PluginSettingTab
 main.ts
 styles.css
 ```
 
 > **Note:** If `styles.css` is accidentally placed in the root folder instead of `src`, it will be automatically moved to the correct location when running any development command. After building, a copy of `styles.css` will appear in the root folder as part of the normal release process.
+
+#### Shared Reading Mode Context Menu
+
+This plugin shares its reading mode context menu with **Obsidian Smart Print** using a cooperative pattern:
+
+1. Both plugins listen to the native `contextmenu` event on `document`
+2. The first plugin to respond creates a shared menu stored at `window._sharedReadingMenu`
+3. It then defers menu display using `setTimeout(0)` — this allows all other `contextmenu` listeners to run first and add their own items
+4. Subsequent plugins detect the existing menu and append their items
+5. After the event loop completes, the menu is displayed with all items combined
+
+This approach avoids conflicts and ensures a unified context menu experience for users.
 
 #### Development Options
 
