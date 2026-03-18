@@ -1,5 +1,5 @@
 import { Side } from "./types.ts";
-import type { BooleanSettingKey, ElementConfig, EFSSettings, ToggleItem } from "./types.ts";
+import type { ElementConfig, EFSSettings, ToggleItem } from "./types.ts";
 
 export const TOGGLE_ITEMS: ToggleItem[] = [
 	{ key: "hideTopBar", label: "Top bar", desc: "Title bar + tab strip" },
