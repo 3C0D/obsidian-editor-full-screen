@@ -1,4 +1,4 @@
-import { Plugin, Menu } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS } from './constants.ts';
 import type { EFSSettings } from './types.ts';
 import { Side } from './types.ts';
@@ -7,6 +7,7 @@ import { EFSModal } from './modal.ts';
 import { ElementManager } from './elementManager.ts';
 import { HoverDetector } from './hoverDetector.ts';
 import { collapseSidebar, expandSidebar, updateSidebarVisibility } from './sidebarUtils.ts';
+import { registerMenus } from './menuManager.ts';
 
 /**
  * Main plugin class for Editor Full Screen.
@@ -40,46 +41,8 @@ export default class EditorFullScreen extends Plugin {
 			callback: () => new EFSModal(this.app, this).open(),
 		});
 
-		// Editor context menu
-		this.registerEvent(
-			this.app.workspace.on('editor-menu', (menu) => {
-			menu.addItem((item) => {
-				item.setTitle("Full screen").setIcon("expand");
-
-				const sub = (item as any).setSubmenu(); // it's a mystery why MenuItem doesn't have setSubmenu in obsidian-types, exactly installed the same way as obsidian-smart-print.
-				sub.addItem((i: any) =>
-					i.setTitle("Toggle").setIcon("expand").onClick(() => this.toggleMode())
-				);
-				sub.addItem((i: any) =>
-					i.setTitle("Settings").setIcon("layout").onClick(() => new EFSModal(this.app, this).open())
-				);
-			});
-			})
-		);
-
-		// Editor context menu in reading mode
-		this.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
-			// Only in reading mode, and no text selected
-			const target = e.target as HTMLElement;
-			if (!target.closest('.markdown-reading-view')) return;
-			if (window.getSelection()?.toString()) return;
-
-			e.preventDefault();
-			const menu = new Menu();
-			menu.addItem(item =>
-				item
-					.setTitle('Toggle full screen')
-					.setIcon('expand')
-					.onClick(() => this.toggleMode())
-			);
-			menu.addItem(item =>
-				item
-					.setTitle('Configure hidden elements')
-					.setIcon('layout')
-					.onClick(() => new EFSModal(this.app, this).open())
-			);
-			menu.showAtMouseEvent(e);
-		});
+		// Register context menus
+		registerMenus(this);
 
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.modeAtStart && this.settings.lastFullScreen) {
