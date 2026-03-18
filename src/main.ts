@@ -1,16 +1,12 @@
-import { Plugin, Menu } from "obsidian";
-import { DEFAULT_SETTINGS } from "./constants.ts";
-import type { EFSSettings } from "./types.ts";
-import { Side } from "./types.ts";
-import { EFSSettingTab } from "./settings.ts";
-import { EFSModal } from "./modal.ts";
-import { ElementManager } from "./elementManager.ts";
-import { HoverDetector } from "./hoverDetector.ts";
-import {
-	collapseSidebar,
-	expandSidebar,
-	updateSidebarVisibility,
-} from "./sidebarUtils.ts";
+import { Plugin, Menu } from 'obsidian';
+import { DEFAULT_SETTINGS } from './constants.ts';
+import type { EFSSettings } from './types.ts';
+import { Side } from './types.ts';
+import { EFSSettingTab } from './settings.ts';
+import { EFSModal } from './modal.ts';
+import { ElementManager } from './elementManager.ts';
+import { HoverDetector } from './hoverDetector.ts';
+import { collapseSidebar, expandSidebar, updateSidebarVisibility } from './sidebarUtils.ts';
 
 /**
  * Main plugin class for Editor Full Screen.
@@ -18,8 +14,7 @@ import {
  * providing toggle functionality and element visibility control.
  */
 export default class EditorFullScreen extends Plugin {
-	// Tracks whether full screen mode is currently active
-	isActive = false;
+	isFullScreen = false;
 	settings: EFSSettings;
 
 	private elementManager: ElementManager;
@@ -37,27 +32,27 @@ export default class EditorFullScreen extends Plugin {
 		this.addSettingTab(new EFSSettingTab(this.app, this));
 
 		this.addCommand({
-			id: "efs-toggle",
-			name: "Toggle full screen mode",
+			id: 'efs-toggle',
+			name: 'Toggle full screen mode',
 			callback: () => this.toggleMode(),
 		});
 
 		this.addCommand({
-			id: "efs-open-modal",
-			name: "Full screen: open element settings",
+			id: 'efs-open-modal',
+			name: 'Configure hidden elements',
 			callback: () => new EFSModal(this.app, this).open(),
 		});
 
 		// Context menu on right-click in editor
 		this.registerEvent(
-			this.app.workspace.on("editor-menu", (menu: Menu) => {
-				menu.addItem((item) =>
+			this.app.workspace.on('editor-menu', (menu: Menu) => {
+				menu.addItem(item =>
 					item
-						.setTitle("Full screen settings")
-						.setIcon("layout")
-						.onClick(() => new EFSModal(this.app, this).open()),
+						.setTitle('Full screen settings')
+						.setIcon('layout')
+						.onClick(() => new EFSModal(this.app, this).open())
 				);
-			}),
+			})
 		);
 
 		this.app.workspace.onLayoutReady(() => {
@@ -71,7 +66,7 @@ export default class EditorFullScreen extends Plugin {
 	 * Cleans up when the plugin is unloaded.
 	 */
 	onunload(): void {
-		if (this.isActive) this.deactivateMode();
+		if (this.isFullScreen) this.deactivateMode();
 	}
 
 	/**
@@ -95,13 +90,13 @@ export default class EditorFullScreen extends Plugin {
 	 * Toggles full screen mode on or off.
 	 */
 	toggleMode(): void {
-		if (this.isActive) {
+		if (this.isFullScreen) {
 			this.deactivateMode();
 		} else {
 			this.activateMode();
 		}
 		// Persist last active state so modeAtStart can restore it
-		this.settings.wasActive = this.isActive;
+		this.settings.wasActive = this.isFullScreen;
 		this.saveSettings();
 	}
 
@@ -109,24 +104,24 @@ export default class EditorFullScreen extends Plugin {
 	 * Activates full screen mode by hiding UI elements and setting up hover detection.
 	 */
 	activateMode(): void {
-		this.isActive = true;
+		this.isFullScreen = true;
 		this.elementManager.setActiveKeys(this.buildActiveKeys());
 
 		// Collapse sidebars if enabled in settings
 		if (this.settings.hideLeftSidebar) {
-			collapseSidebar(this.app, "left");
+			collapseSidebar(this.app, 'left');
 		}
 		if (this.settings.hideRightSidebar) {
-			collapseSidebar(this.app, "right");
+			collapseSidebar(this.app, 'right');
 		}
 
 		// Set up callbacks for sidebar expand/collapse on hover
 		this.hoverDetector.onSideReveal = (side: Side): void => {
 			if (side === Side.left && this.settings.hideLeftSidebar) {
-				expandSidebar(this.app, "left");
+				expandSidebar(this.app, 'left');
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
-				expandSidebar(this.app, "right");
+				expandSidebar(this.app, 'right');
 			}
 		};
 		this.hoverDetector.onSideHide = (side: Side): void => {
@@ -135,15 +130,15 @@ export default class EditorFullScreen extends Plugin {
 				this.settings.hideLeftSidebar &&
 				this.hoverDetector.sidesHave(Side.left)
 			) {
-				collapseSidebar(this.app, "left");
+				collapseSidebar(this.app, 'left');
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {
-				collapseSidebar(this.app, "right");
+				collapseSidebar(this.app, 'right');
 			}
 		};
 
 		this.elementManager.hideAll();
-		document.body.classList.add("efs-active");
+		document.body.classList.add('efs-active');
 		this.hoverDetector.start();
 	}
 
@@ -151,7 +146,7 @@ export default class EditorFullScreen extends Plugin {
 	 * Deactivates full screen mode by restoring UI elements and stopping hover detection.
 	 */
 	deactivateMode(): void {
-		this.isActive = false;
+		this.isFullScreen = false;
 		this.hoverDetector.stop();
 
 		// Clear callbacks
@@ -160,14 +155,14 @@ export default class EditorFullScreen extends Plugin {
 
 		// Restore sidebars on deactivate
 		if (this.settings.hideLeftSidebar) {
-			expandSidebar(this.app, "left");
+			expandSidebar(this.app, 'left');
 		}
 		if (this.settings.hideRightSidebar) {
-			expandSidebar(this.app, "right");
+			expandSidebar(this.app, 'right');
 		}
 
 		this.elementManager.showAll();
-		document.body.classList.remove("efs-active");
+		document.body.classList.remove('efs-active');
 	}
 
 	/**
@@ -189,10 +184,10 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	private buildActiveKeys(): string[] {
 		const keys: string[] = [];
-		if (this.settings.hideTopBar) keys.push("tabHeader", "titleBar");
-		if (this.settings.hideRibbon) keys.push("ribbon", "leftToggleBtn");
-		if (this.settings.hideViewHeader) keys.push("viewHeader");
-		if (this.settings.hideStatusBar) keys.push("statusBar");
+		if (this.settings.hideTopBar) keys.push('tabHeader', 'titleBar');
+		if (this.settings.hideRibbon) keys.push('ribbon', 'leftToggleBtn');
+		if (this.settings.hideViewHeader) keys.push('viewHeader');
+		if (this.settings.hideStatusBar) keys.push('statusBar');
 		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager
 		return keys;
 	}

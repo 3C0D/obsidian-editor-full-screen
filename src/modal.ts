@@ -1,6 +1,6 @@
-import { Modal, App, Setting } from "obsidian";
-import type { EditorFullScreenPlugin } from "./types.ts";
-import { TOGGLE_ITEMS } from "./constants.ts";
+import { Modal, App, Setting, ToggleComponent } from 'obsidian';
+import type { EditorFullScreenPlugin } from './types.ts';
+import { TOGGLE_ITEMS } from './constants.ts';
 
 /**
  * Modal for configuring which elements to hide in full screen mode.
@@ -8,7 +8,7 @@ import { TOGGLE_ITEMS } from "./constants.ts";
 export class EFSModal extends Modal {
 	constructor(
 		app: App,
-		private plugin: EditorFullScreenPlugin,
+		private plugin: EditorFullScreenPlugin
 	) {
 		super(app);
 	}
@@ -18,40 +18,40 @@ export class EFSModal extends Modal {
 	}
 
 	private render(): void {
+		let ribbonToggle: ToggleComponent | null = null;
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl("h2", { text: "Full Screen — Elements" });
+		contentEl.createEl('h2', { text: 'Full Screen — Elements' });
 
 		TOGGLE_ITEMS.forEach(({ key, label, desc }) => {
 			new Setting(contentEl)
 				.setName(label)
 				.setDesc(desc)
-				.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings[key])
-						.onChange(async (value) => {
-							this.plugin.settings[key] = value;
+				.addToggle(toggle => {
+					if (key === 'hideRibbon') ribbonToggle = toggle;
+					toggle.setValue(this.plugin.settings[key]).onChange(async value => {
+						this.plugin.settings[key] = value;
 
-							// Enabling left sidebar forces ribbon on (ribbon hides the sidebar toggle button)
-							if (key === "hideLeftSidebar" && value) {
-								this.plugin.settings.hideRibbon = true;
-								this.render(); // refresh to reflect auto-change
-							}
+						// Enabling hide left sidebar forces hide ribbon on
+						if (key === 'hideLeftSidebar' && value) {
+							this.plugin.settings.hideRibbon = true;
+							ribbonToggle?.setValue(true);
+						}
 
-							await this.plugin.saveSettings();
+						await this.plugin.saveSettings();
 
-							if (this.plugin.isActive) {
-								this.plugin.reapplyMode();
-							}
-						}),
-				);
+						if (this.plugin.isFullScreen) {
+							this.plugin.reapplyMode();
+						}
+					});
+				});
 		});
 
-		new Setting(contentEl).addButton((btn) =>
+		new Setting(contentEl).addButton(btn =>
 			btn
-				.setButtonText("Close")
+				.setButtonText('Close')
 				.setCta()
-				.onClick(() => this.close()),
+				.onClick(() => this.close())
 		);
 	}
 

@@ -1,15 +1,11 @@
-import { WorkspaceSidedock, App } from "obsidian";
-import type { EditorFullScreenPlugin } from "./types.ts";
+import { WorkspaceSidedock, App } from 'obsidian';
+import type { EditorFullScreenPlugin } from './types.ts';
 
 /**
  * Collapses the specified sidebar.
  */
-export function collapseSidebar(
-	app: App,
-	side: "left" | "right",
-): void {
-	const split =
-		side === "left" ? app.workspace.leftSplit : app.workspace.rightSplit;
+export function collapseSidebar(app: App, side: 'left' | 'right'): void {
+	const split = side === 'left' ? app.workspace.leftSplit : app.workspace.rightSplit;
 	const dock = split as WorkspaceSidedock;
 	if (!dock.collapsed) {
 		dock.collapse();
@@ -19,12 +15,8 @@ export function collapseSidebar(
 /**
  * Expands the specified sidebar.
  */
-export function expandSidebar(
-	app: App,
-	side: "left" | "right",
-): void {
-	const split =
-		side === "left" ? app.workspace.leftSplit : app.workspace.rightSplit;
+export function expandSidebar(app: App, side: 'left' | 'right'): void {
+	const split = side === 'left' ? app.workspace.leftSplit : app.workspace.rightSplit;
 	const dock = split as WorkspaceSidedock;
 	if (dock.collapsed) {
 		dock.expand();
@@ -37,7 +29,7 @@ export function expandSidebar(
  * Only operates when the full screen mode is active.
  */
 export function updateSidebarVisibility(plugin: EditorFullScreenPlugin): void {
-	if (!plugin.isActive) {
+	if (!plugin.isFullScreen) {
 		return;
 	}
 
@@ -45,11 +37,11 @@ export function updateSidebarVisibility(plugin: EditorFullScreenPlugin): void {
 
 	// Collapse left sidebar if setting is enabled
 	if (settings.hideLeftSidebar) {
-		collapseSidebar(app, "left");
+		collapseSidebar(app, 'left');
 	}
 
 	// Collapse right sidebar if setting is enabled
 	if (settings.hideRightSidebar) {
-		collapseSidebar(app, "right");
+		collapseSidebar(app, 'right');
 	}
 }

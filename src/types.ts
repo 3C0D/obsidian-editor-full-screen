@@ -1,13 +1,13 @@
-import type { Plugin } from "obsidian";
+import type { Plugin } from 'obsidian';
 
 /** Keys for boolean settings in EFSSettings. */
 export type BooleanSettingKey =
-	| "hideRibbon"
-	| "hideTopBar"
-	| "hideViewHeader"
-	| "hideStatusBar"
-	| "hideLeftSidebar"
-	| "hideRightSidebar";
+	| 'hideRibbon'
+	| 'hideTopBar'
+	| 'hideViewHeader'
+	| 'hideStatusBar'
+	| 'hideLeftSidebar'
+	| 'hideRightSidebar';
 
 /** Configuration for a toggle setting item. */
 export interface ToggleItem {
@@ -47,7 +47,7 @@ export interface EFSSettings {
 }
 
 export interface EditorFullScreenPlugin extends Plugin {
-	isActive: boolean;
+	isFullScreen: boolean;
 	settings: EFSSettings;
 	saveSettings(): Promise<void>;
 	reapplyMode(): void;
