@@ -20,9 +20,6 @@ export default class EditorFullScreen extends Plugin {
 	private elementManager: ElementManager;
 	private hoverDetector: HoverDetector;
 
-	/**
-	 * Initializes the plugin on load.
-	 */
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
@@ -43,19 +40,24 @@ export default class EditorFullScreen extends Plugin {
 			callback: () => new EFSModal(this.app, this).open(),
 		});
 
-		// Context menu on right-click in editor
+		// Editor context menu
 		this.registerEvent(
-			this.app.workspace.on('editor-menu', (menu: Menu) => {
-				menu.addItem(item =>
-					item
-						.setTitle('Full screen settings')
-						.setIcon('layout')
-						.onClick(() => new EFSModal(this.app, this).open())
+			this.app.workspace.on('editor-menu', (menu) => {
+			menu.addItem((item) => {
+				item.setTitle("Full screen").setIcon("expand");
+
+				const sub = (item as any).setSubmenu(); // it's a mystery why MenuItem doesn't have setSubmenu in obsidian-types, exactly installed the same way as obsidian-smart-print.
+				sub.addItem((i: any) =>
+					i.setTitle("Toggle").setIcon("expand").onClick(() => this.toggleMode())
 				);
+				sub.addItem((i: any) =>
+					i.setTitle("Settings").setIcon("layout").onClick(() => new EFSModal(this.app, this).open())
+				);
+			});
 			})
 		);
 
-		// Right-click context menu in reading mode
+		// Editor context menu in reading mode
 		this.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
 			// Only in reading mode, and no text selected
 			const target = e.target as HTMLElement;
@@ -80,22 +82,16 @@ export default class EditorFullScreen extends Plugin {
 		});
 
 		this.app.workspace.onLayoutReady(() => {
-			if (this.settings.modeAtStart && this.settings.wasActive) {
+			if (this.settings.modeAtStart && this.settings.lastFullScreen) {
 				this.activateMode();
 			}
 		});
 	}
 
-	/**
-	 * Cleans up when the plugin is unloaded.
-	 */
 	onunload(): void {
 		if (this.isFullScreen) this.deactivateMode();
 	}
 
-	/**
-	 * Loads settings from persistent storage and merges with defaults.
-	 */
 	async loadSettings(): Promise<void> {
 		this.settings = {
 			...DEFAULT_SETTINGS,
@@ -103,9 +99,6 @@ export default class EditorFullScreen extends Plugin {
 		};
 	}
 
-	/**
-	 * Saves current settings to persistent storage.
-	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
@@ -120,7 +113,7 @@ export default class EditorFullScreen extends Plugin {
 			this.activateMode();
 		}
 		// Persist last active state so modeAtStart can restore it
-		this.settings.wasActive = this.isFullScreen;
+		this.settings.lastFullScreen = this.isFullScreen;
 		this.saveSettings();
 	}
 

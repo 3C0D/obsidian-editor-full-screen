@@ -36,7 +36,7 @@ export interface ElementConfig {
 export interface EFSSettings {
 	modeAtStart: boolean;
 	// Tracks last active state for modeAtStart restoration.
-	wasActive: boolean;
+	lastFullScreen: boolean;
 	hideRibbon: boolean;
 	// Controls tab-header-container + titlebar.
 	hideTopBar: boolean;

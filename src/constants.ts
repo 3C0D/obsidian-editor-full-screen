@@ -84,7 +84,7 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 
 export const DEFAULT_SETTINGS: EFSSettings = {
 	modeAtStart: true,
-	wasActive: false,
+	lastFullScreen: false,
 	hideRibbon: true,
 	hideTopBar: true,
 	hideViewHeader: false,

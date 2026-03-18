@@ -1,0 +1,4 @@
+{
+	"npm.packageManager": "yarn",
+	"js/ts.preferences.includePackageJsonAutoImports": "off"
+}
