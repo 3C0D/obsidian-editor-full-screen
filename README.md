@@ -6,36 +6,33 @@ Full screen mode with configurable hidden elements via modal - including sidebar
 
 - **Single full screen mode** with individually configurable hidden elements
 - **Hover-to-reveal**: move cursor to viewport edges to temporarily show hidden elements
-- **Left sidebar**: collapses on activation, reveals on ribbon hover, hides again on editor return
-- **Right sidebar**: reveals with Shift + hover near right editor edge, hides on editor return
-- **Persistent state**: remembers whether full screen was active when Obsidian was closed
+- **Left sidebar**: collapses on activation, reveals on ribbon hover, hides on editor return
+- **Right sidebar**: reveals with **Shift + hover** near right editor edge, hides on editor return
+- **Persistent state**: remembers whether full screen was active before a restart (optional)
 
 ### Hidden elements (configurable)
 
 | Element | Hover zone |
 | --- | --- |
 | Title bar + tab strip | Top edge |
-| View header (file title inside editor) | Its natural position |
+| View header (file title inside editor) | Top area |
 | Ribbon | Left edge |
 | Status bar | Bottom edge |
 | Left sidebar | Revealed with ribbon on left hover |
 | Right sidebar | Shift + right editor edge |
 
-When the ribbon is hidden, the sidebar toggle button remains visible in the top-left corner and appears with the tab strip on top hover.
-
 ### Settings
 
-Access via the plugin settings tab or the **quick modal** (right-click in editor → "Full screen settings"):
+Access via the plugin settings tab or the **quick modal** ("Configure hidden elements" in command palette or editor context menu):
 
 - **Persistent full screen**: restore full screen mode on restart if it was active when Obsidian closed
 - Per-element toggles (changes apply immediately if mode is active)
-- Enabling **left sidebar** also enables **ribbon** hiding automatically
+
+N.B: Enabling **hide left sidebar** also enables **hide ribbon**
 
 ### Usage
 
-Toggle full screen via the command palette (`Toggle full screen mode`) or assign a hotkey in Obsidian settings.
-
-Open element settings via the command palette (`Full screen: open element settings`) or right-click in the editor.
+All actions are accessible via the command palette or right-click. Hotkeys can be assigned in Obsidian settings.
 
 ---
 
