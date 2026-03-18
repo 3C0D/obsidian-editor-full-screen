@@ -34,6 +34,9 @@ export class HoverDetector {
 	// Sentinel elements for catching fast mouse entries at viewport edges (especially top).
 	private sentinelTop: HTMLDivElement | null = null;
 
+	/**
+	 * @param manager - ElementManager instance for managing element visibility.
+	 */
 	constructor(private manager: ElementManager) {}
 
 	/**
@@ -57,7 +60,7 @@ export class HoverDetector {
 	/**
 	 * Creates sentinel elements at viewport edges to detect fast mouse entries that mousemove might miss.
 	 * Thin transparent strips pinned to viewport edges.
-	 * 
+	 *
 	 * When the cursor moves very quickly from outside the window toward the top edge,
 	 * the mousemove event may not fire in time to detect the entry. The sentinel acts as a
 	 * safety net: the cursor can jump from outside the window straight into the sentinel
@@ -209,8 +212,10 @@ export class HoverDetector {
 		}
 	}
 
-	// For elements not sitting at a viewport edge, reveal their side
-	// when the cursor enters their natural (pre-hide) bounding rect.
+	/**
+	 * For elements not sitting at a viewport edge, reveal their side
+	 * when the cursor enters their natural (pre-hide) bounding rect.
+	 */
 	private checkPositionReveal(key: string, e: MouseEvent): void {
 		if (!this.manager.getActiveKeys().includes(key)) return;
 		const rect = this.manager.getNaturalRect(key);
@@ -225,14 +230,21 @@ export class HoverDetector {
 		}
 	}
 
-	// The right edge of the editor scroll area.
-	// .cm-scroller does not change width when right sidebar toggles.
+	/**
+	 * The right edge of the editor scroll area.
+	 * .cm-scroller does not change width when right sidebar toggles.
+	 * @returns The right coordinate of the editor, or null if not found.
+	 */
 	private getEditorRight(): number | null {
 		const el = document.querySelector(".cm-scroller");
 		return el ? el.getBoundingClientRect().right : null;
 	}
 
-	// Check if a side currently has its elements shown
+	/**
+	 * Check if a side currently has its elements shown.
+	 * @param side - The side to check.
+	 * @returns True if the side has its elements shown.
+	 */
 	sidesHave(side: Side): boolean {
 		return this.shownSides.has(side);
 	}

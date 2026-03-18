@@ -1,46 +1,15 @@
 import { Modal, App, Setting } from "obsidian";
-import type { EditorFullScreenPlugin } from "./pluginType.ts";
+import type { EditorFullScreenPlugin } from "./types.ts";
+import { TOGGLE_ITEMS } from "./constants.ts";
 
-type BooleanSettingKey =
-	| "hideRibbon"
-	| "hideTopBar"
-	| "hideViewHeader"
-	| "hideStatusBar"
-	| "hideLeftSidebar"
-	| "hideRightSidebar";
-
-interface ToggleItem {
-	key: BooleanSettingKey;
-	label: string;
-	desc: string;
-}
-
-const TOGGLE_ITEMS: ToggleItem[] = [
-	{ key: "hideTopBar", label: "Top bar", desc: "Title bar + tab strip" },
-	{
-		key: "hideViewHeader",
-		label: "View header",
-		desc: "File title bar inside the editor pane",
-	},
-	{
-		key: "hideLeftSidebar",
-		label: "Left sidebar",
-		desc: "Toggles on ribbon hover, closes on editor return",
-	},
-	{
-		key: "hideRightSidebar",
-		label: "Right sidebar",
-		desc: "Shift + hover right edge to toggle",
-	},
-	{
-		key: "hideRibbon",
-		label: "Ribbon",
-		desc: "Left icon ribbon (auto-enabled with left sidebar)",
-	},
-	{ key: "hideStatusBar", label: "Status bar", desc: "Bottom status bar" },
-];
-
+/**
+ * Modal for configuring which elements to hide in full screen mode.
+ */
 export class EFSModal extends Modal {
+	/**
+	 * @param app - The Obsidian app instance.
+	 * @param plugin - The EditorFullScreen plugin instance.
+	 */
 	constructor(
 		app: App,
 		private plugin: EditorFullScreenPlugin,
@@ -48,6 +17,9 @@ export class EFSModal extends Modal {
 		super(app);
 	}
 
+	/**
+	 * Called when the modal is opened.
+	 */
 	onOpen(): void {
 		this.render();
 	}
@@ -90,6 +62,9 @@ export class EFSModal extends Modal {
 		);
 	}
 
+	/**
+	 * Called when the modal is closed.
+	 */
 	onClose(): void {
 		this.contentEl.empty();
 	}

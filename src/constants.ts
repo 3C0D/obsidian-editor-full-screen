@@ -1,5 +1,30 @@
 import { Side } from "./types.ts";
-import type { ElementConfig, EFSSettings } from "./types.ts";
+import type { BooleanSettingKey, ElementConfig, EFSSettings, ToggleItem } from "./types.ts";
+
+export const TOGGLE_ITEMS: ToggleItem[] = [
+	{ key: "hideTopBar", label: "Top bar", desc: "Title bar + tab strip" },
+	{
+		key: "hideViewHeader",
+		label: "View header",
+		desc: "File title bar inside the editor pane",
+	},
+	{
+		key: "hideLeftSidebar",
+		label: "Left sidebar",
+		desc: "Toggles on ribbon hover, closes on editor return",
+	},
+	{
+		key: "hideRightSidebar",
+		label: "Right sidebar",
+		desc: "Shift + hover right edge to toggle",
+	},
+	{
+		key: "hideRibbon",
+		label: "Ribbon",
+		desc: "Left icon ribbon (auto-enabled with left sidebar)",
+	},
+	{ key: "hideStatusBar", label: "Status bar", desc: "Bottom status bar" },
+];
 
 export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	ribbon: {

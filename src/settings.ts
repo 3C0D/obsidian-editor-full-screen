@@ -1,14 +1,25 @@
 import { PluginSettingTab, App, Setting } from "obsidian";
-import type { EditorFullScreenPlugin } from "./pluginType.ts";
+import type { EditorFullScreenPlugin } from "./types.ts";
 
+/**
+ * Settings tab for the Editor Full Screen plugin.
+ * Provides UI for configuring full screen mode persistence and default behaviors.
+ */
 export class EFSSettingTab extends PluginSettingTab {
 	plugin: EditorFullScreenPlugin;
 
+	/**
+	 * @param app - The Obsidian app instance.
+	 * @param plugin - The EditorFullScreen plugin instance.
+	 */
 	constructor(app: App, plugin: EditorFullScreenPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Renders the settings UI.
+	 */
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();

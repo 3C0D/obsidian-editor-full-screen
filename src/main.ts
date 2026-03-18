@@ -7,14 +7,22 @@ import { EFSModal } from "./modal.ts";
 import { ElementManager } from "./elementManager.ts";
 import { HoverDetector } from "./hoverDetector.ts";
 
+/**
+ * Main plugin class for Editor Full Screen.
+ * Manages the full screen mode for the Obsidian editor,
+ * providing toggle functionality and element visibility control.
+ */
 export default class EditorFullScreen extends Plugin {
-	// Tracks whether full screen mode is currently active 
+	// Tracks whether full screen mode is currently active
 	isActive = false;
 	settings: EFSSettings;
 
 	private elementManager: ElementManager;
 	private hoverDetector: HoverDetector;
 
+	/**
+	 * Initializes the plugin on load.
+	 */
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
@@ -54,10 +62,16 @@ export default class EditorFullScreen extends Plugin {
 		});
 	}
 
+	/**
+	 * Cleans up when the plugin is unloaded.
+	 */
 	onunload(): void {
 		if (this.isActive) this.deactivateMode();
 	}
 
+	/**
+	 * Loads settings from persistent storage and merges with defaults.
+	 */
 	async loadSettings(): Promise<void> {
 		this.settings = {
 			...DEFAULT_SETTINGS,
@@ -65,10 +79,16 @@ export default class EditorFullScreen extends Plugin {
 		};
 	}
 
+	/**
+	 * Saves current settings to persistent storage.
+	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
 
+	/**
+	 * Toggles full screen mode on or off.
+	 */
 	toggleMode(): void {
 		if (this.isActive) {
 			this.deactivateMode();
@@ -80,6 +100,9 @@ export default class EditorFullScreen extends Plugin {
 		this.saveSettings();
 	}
 
+	/**
+	 * Activates full screen mode by hiding UI elements and setting up hover detection.
+	 */
 	activateMode(): void {
 		this.isActive = true;
 		this.elementManager.setActiveKeys(this.buildActiveKeys());
@@ -133,6 +156,9 @@ export default class EditorFullScreen extends Plugin {
 		this.hoverDetector.start();
 	}
 
+	/**
+	 * Deactivates full screen mode by restoring UI elements and stopping hover detection.
+	 */
 	deactivateMode(): void {
 		this.isActive = false;
 		this.hoverDetector.stop();
@@ -157,15 +183,20 @@ export default class EditorFullScreen extends Plugin {
 		document.body.classList.remove("efs-active");
 	}
 
-	// Called from modal after settings change, without full deactivate/activate cycle.
-	// Must show ALL first so elements removed from activeKeys become visible again.
+	/**
+	 * Reapplies the current mode after settings changes.
+	 * Shows all elements first so removed ones become visible again.
+	 */
 	reapplyMode(): void {
 		this.elementManager.showAll();
 		this.elementManager.setActiveKeys(this.buildActiveKeys());
 		this.elementManager.hideAll();
 	}
 
-	// Build list of element keys from current settings
+	/**
+	 * Builds the list of element keys to manage based on current settings.
+	 * @returns Array of element keys to hide in full screen mode.
+	 */
 	private buildActiveKeys(): string[] {
 		const keys: string[] = [];
 		if (this.settings.hideTopBar) keys.push("tabHeader", "titleBar");
