@@ -55,6 +55,30 @@ export default class EditorFullScreen extends Plugin {
 			})
 		);
 
+		// Right-click context menu in reading mode
+		this.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
+			// Only in reading mode, and no text selected
+			const target = e.target as HTMLElement;
+			if (!target.closest('.markdown-reading-view')) return;
+			if (window.getSelection()?.toString()) return;
+
+			e.preventDefault();
+			const menu = new Menu();
+			menu.addItem(item =>
+				item
+					.setTitle('Toggle full screen')
+					.setIcon('expand')
+					.onClick(() => this.toggleMode())
+			);
+			menu.addItem(item =>
+				item
+					.setTitle('Configure hidden elements')
+					.setIcon('layout')
+					.onClick(() => new EFSModal(this.app, this).open())
+			);
+			menu.showAtMouseEvent(e);
+		});
+
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.modeAtStart && this.settings.wasActive) {
 				this.activateMode();
