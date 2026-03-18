@@ -1,13 +1,11 @@
-import { WorkspaceSidedock } from "obsidian";
+import { WorkspaceSidedock, App } from "obsidian";
 import type { EditorFullScreenPlugin } from "./types.ts";
 
 /**
  * Collapses the specified sidebar.
- * @param app - The Obsidian app instance.
- * @param side - Which sidebar to collapse ('left' or 'right').
  */
 export function collapseSidebar(
-	app: EditorFullScreenPlugin["app"],
+	app: App,
 	side: "left" | "right",
 ): void {
 	const split =
@@ -20,11 +18,9 @@ export function collapseSidebar(
 
 /**
  * Expands the specified sidebar.
- * @param app - The Obsidian app instance.
- * @param side - Which sidebar to expand ('left' or 'right').
  */
 export function expandSidebar(
-	app: EditorFullScreenPlugin["app"],
+	app: App,
 	side: "left" | "right",
 ): void {
 	const split =
@@ -37,10 +33,8 @@ export function expandSidebar(
 
 /**
  * Updates sidebar visibility based on current settings.
- * Only collapses sidebars when the corresponding setting is enabled.
- * Does not expand sidebars when settings are disabled (user must do it manually).
+ * Collapses sidebars when the corresponding hide setting is enabled.
  * Only operates when the full screen mode is active.
- * @param plugin - The EditorFullScreen plugin instance.
  */
 export function updateSidebarVisibility(plugin: EditorFullScreenPlugin): void {
 	if (!plugin.isActive) {

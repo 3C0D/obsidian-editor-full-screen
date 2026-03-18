@@ -14,9 +14,6 @@ const BOTTOM_EXTRA_MARGIN = 40;
 /**
  * Detects cursor proximity to viewport edges and manages revealing/hiding of UI elements accordingly.
  *
- * Callbacks:
- * - onSideReveal: Called when a side should be revealed (cursor approaches edge)
- * - onSideHide: Called when a side should be hidden (cursor leaves element area)
  * @param manager - The ElementManager instance to control element visibility and get positions.
  */
 export class HoverDetector {
@@ -85,16 +82,28 @@ export class HoverDetector {
 		document.body.appendChild(this.sentinelTop);
 	}
 
+	/**
+	 * Removes sentinel elements from the DOM and cleans up references.
+	 */
 	private removeSentinels(): void {
 		this.sentinelTop?.remove();
 		this.sentinelTop = null;
 	}
 
+	/**
+	 * Handles mouse movement events to check for reveal and hide conditions.
+	 * @param e - The mouse event from the mousemove listener.
+	 */
 	private handleMouseMove = (e: MouseEvent): void => {
 		this.checkReveal(e);
 		this.checkHide(e);
 	};
 
+	/**
+	 * Checks if the cursor is near viewport edges to reveal corresponding sides.
+	 * Evaluates left, top, bottom edges, right sidebar (with Shift), and position-based elements.
+	 * @param e - The mouse event containing cursor position.
+	 */
 	private checkReveal(e: MouseEvent): void {
 		// Use actual ribbon width if available, capped to avoid accidental triggers
 		const ribbonEl = document.querySelector(
@@ -132,7 +141,9 @@ export class HoverDetector {
 	}
 
 	/**
-	 * Checks if the cursor has moved outside currently shown sides to hide them, or if it has returned to the editor area to hide sidebars.
+	 * Checks if the cursor has moved outside currently shown sides to hide them,
+	 * or if it has returned to the editor area to hide sidebars.
+	 * @param e - The mouse event containing cursor position.
 	 */
 	private checkHide(e: MouseEvent): void {
 		this.shownSides.forEach((side) => {
@@ -175,12 +186,22 @@ export class HoverDetector {
 		}
 	}
 
+	/**
+	 * Determines if the cursor is currently over the active editor area.
+	 * @param e - The mouse event containing cursor position.
+	 * @returns True if the cursor is over the active workspace leaf, false otherwise.
+	 */
 	private isOverEditor(e: MouseEvent): boolean {
 		return !!document
 			.elementFromPoint(e.clientX, e.clientY)
 			?.closest(".workspace-leaf.mod-active");
 	}
 
+	/**
+	 * Reveals the element(s) for a given side and triggers the reveal callback.
+	 * Avoids redundant operations if the side is already shown.
+	 * @param side - The side to reveal (left, top, bottom, or right).
+	 */
 	private revealSide(side: Side): void {
 		// Avoid redundant classList ops if already shown
 		if (!this.shownSides.has(side)) {
@@ -195,6 +216,12 @@ export class HoverDetector {
 		}
 	}
 
+	/**
+	 * Determines if the cursor has moved outside the bounds of a given side's element area.
+	 * @param e - The mouse event containing cursor position.
+	 * @param side - The side to check against.
+	 * @returns True if the cursor is outside the side's bounds (considering padding), false otherwise.
+	 */
 	private isOutside(e: MouseEvent, side: Side): boolean {
 		const rect = this.manager.getCombinedRect(side);
 		if (!rect) return false;

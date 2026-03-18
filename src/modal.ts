@@ -6,10 +6,6 @@ import { TOGGLE_ITEMS } from "./constants.ts";
  * Modal for configuring which elements to hide in full screen mode.
  */
 export class EFSModal extends Modal {
-	/**
-	 * @param app - The Obsidian app instance.
-	 * @param plugin - The EditorFullScreen plugin instance.
-	 */
 	constructor(
 		app: App,
 		private plugin: EditorFullScreenPlugin,
@@ -17,9 +13,6 @@ export class EFSModal extends Modal {
 		super(app);
 	}
 
-	/**
-	 * Called when the modal is opened.
-	 */
 	onOpen(): void {
 		this.render();
 	}
@@ -62,9 +55,6 @@ export class EFSModal extends Modal {
 		);
 	}
 
-	/**
-	 * Called when the modal is closed.
-	 */
 	onClose(): void {
 		this.contentEl.empty();
 	}
