@@ -85,7 +85,7 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	activateMode(): void {
 		this.isFullScreen = true;
-		this.elementManager.setActiveKeys(this.buildActiveKeys());
+		this.elementManager.setManagedKeys(this.buildActiveKeys());
 
 		// Collapse sidebars if enabled in settings
 		if (this.settings.hideLeftSidebar) {
@@ -117,7 +117,7 @@ export default class EditorFullScreen extends Plugin {
 			}
 		};
 
-		this.elementManager.hideAll();
+		this.elementManager.hideManaged();
 		document.body.classList.add('efs-active');
 		this.hoverDetector.start();
 	}
@@ -141,7 +141,7 @@ export default class EditorFullScreen extends Plugin {
 			expandSidebar(this.app, 'right');
 		}
 
-		this.elementManager.showAll();
+		this.elementManager.showAllElements();
 		document.body.classList.remove('efs-active');
 	}
 
@@ -150,9 +150,9 @@ export default class EditorFullScreen extends Plugin {
 	 * Shows all elements first so removed ones become visible again.
 	 */
 	reapplyMode(): void {
-		this.elementManager.showAll();
-		this.elementManager.setActiveKeys(this.buildActiveKeys());
-		this.elementManager.hideAll();
+		this.elementManager.showAllElements();
+		this.elementManager.setManagedKeys(this.buildActiveKeys());
+		this.elementManager.hideManaged();
 
 		// Update sidebar visibility based on current settings
 		updateSidebarVisibility(this);

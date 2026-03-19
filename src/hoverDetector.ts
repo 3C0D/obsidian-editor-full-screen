@@ -1,6 +1,6 @@
-import { Side } from "./types.ts";
-import { ElementManager } from "./elementManager.ts";
-import { ELEMENT_CONFIGS } from "./constants.ts";
+import { Side } from './types.ts';
+import { ElementManager } from './elementManager.ts';
+import { ELEMENT_CONFIGS } from './constants.ts';
 
 // px from viewport edge that triggers element reveal
 const EDGE_THRESHOLD = 40;
@@ -41,7 +41,7 @@ export class HoverDetector {
 	 * Starts hover detection by adding mousemove listener and creating sentinels.
 	 */
 	start(): void {
-		document.addEventListener("mousemove", this.handleMouseMove);
+		document.addEventListener('mousemove', this.handleMouseMove);
 		this.createSentinels();
 	}
 
@@ -49,7 +49,7 @@ export class HoverDetector {
 	 * Stops hover detection by removing mousemove listener and sentinels, and resetting state.
 	 */
 	stop(): void {
-		document.removeEventListener("mousemove", this.handleMouseMove);
+		document.removeEventListener('mousemove', this.handleMouseMove);
 		this.removeSentinels();
 		this.shownSides.clear();
 		this.rightSidebarOpen = false;
@@ -65,20 +65,18 @@ export class HoverDetector {
 	 * strip before any mousemove event reaches the document handler.
 	 */
 	private createSentinels(): void {
-		this.sentinelTop = document.createElement("div");
+		this.sentinelTop = document.createElement('div');
 		Object.assign(this.sentinelTop.style, {
-			position: "fixed",
-			top: "0",
-			left: "0",
-			width: "100%",
+			position: 'fixed',
+			top: '0',
+			left: '0',
+			width: '100%',
 			height: `${EDGE_THRESHOLD}px`,
-			zIndex: "99999",
-			pointerEvents: "all",
-			opacity: "0",
+			zIndex: '99999',
+			pointerEvents: 'all',
+			opacity: '0',
 		});
-		this.sentinelTop.addEventListener("mouseenter", () =>
-			this.revealSide(Side.top),
-		);
+		this.sentinelTop.addEventListener('mouseenter', () => this.revealSide(Side.top));
 		document.body.appendChild(this.sentinelTop);
 	}
 
@@ -107,7 +105,7 @@ export class HoverDetector {
 	private checkReveal(e: MouseEvent): void {
 		// Use actual ribbon width if available, capped to avoid accidental triggers
 		const ribbonEl = document.querySelector(
-			".workspace-ribbon.side-dock-ribbon.mod-left",
+			'.workspace-ribbon.side-dock-ribbon.mod-left'
 		) as HTMLElement | null;
 		const triggerWidth = ribbonEl
 			? Math.min(ribbonEl.getBoundingClientRect().width, LEFT_TRIGGER_MAX)
@@ -118,26 +116,20 @@ export class HoverDetector {
 		if (e.clientY <= EDGE_THRESHOLD) this.revealSide(Side.top);
 
 		// Bottom: pull trigger zone up to stay above Windows taskbar
-		if (
-			e.clientY >=
-			window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN
-		)
+		if (e.clientY >= window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN)
 			this.revealSide(Side.bottom);
 
 		// Right sidebar: Shift + near right edge → open once, then wait for editor return
 		if (!this.rightSidebarOpen && e.shiftKey) {
 			const editorRight = this.getEditorRight();
-			if (
-				editorRight !== null &&
-				e.clientX >= editorRight - EDGE_THRESHOLD
-			) {
+			if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD) {
 				this.rightSidebarOpen = true;
 				this.onSideReveal?.(Side.right);
 			}
 		}
 
 		// viewHeader is not at the viewport edge: detect by its stored position
-		this.checkPositionReveal("viewHeader", e);
+		this.checkPositionReveal('viewHeader', e);
 	}
 
 	/**
@@ -146,18 +138,18 @@ export class HoverDetector {
 	 * @param e - The mouse event containing cursor position.
 	 */
 	private checkHide(e: MouseEvent): void {
-		this.shownSides.forEach((side) => {
+		this.shownSides.forEach(side => {
 			if (this.isOutside(e, side)) {
 				this.manager.hideBySide(side);
 				this.shownSides.delete(side);
 				// Re-enable sentinel pointer-events when top is hidden
 				if (side === Side.top && this.sentinelTop)
-					this.sentinelTop.style.pointerEvents = "all";
+					this.sentinelTop.style.pointerEvents = 'all';
 				// Re-hide toggle button only if neither linked side is shown
 				if (side === Side.left && !this.shownSides.has(Side.top))
-					this.manager.hide("leftToggleBtn");
+					this.manager.hide('leftToggleBtn');
 				if (side === Side.top && !this.shownSides.has(Side.left))
-					this.manager.hide("leftToggleBtn");
+					this.manager.hide('leftToggleBtn');
 				this.onSideHide?.(side);
 			}
 		});
@@ -168,16 +160,14 @@ export class HoverDetector {
 				this.manager.hideBySide(Side.left);
 				this.onSideHide?.(Side.left);
 				this.shownSides.delete(Side.left);
-				if (!this.shownSides.has(Side.top))
-					this.manager.hide("leftToggleBtn");
+				if (!this.shownSides.has(Side.top)) this.manager.hide('leftToggleBtn');
 			}
 			// Right sidebar: close only if cursor was NOT already near the trigger zone
 			// (prevents immediate close when opening from editor edge)
 			if (this.rightSidebarOpen) {
 				const editorRight = this.getEditorRight();
 				const wasNearRightEdge =
-					editorRight !== null &&
-					e.clientX >= editorRight - EDGE_THRESHOLD;
+					editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD;
 				if (!wasNearRightEdge) {
 					this.rightSidebarOpen = false;
 					this.onSideHide?.(Side.right);
@@ -194,7 +184,7 @@ export class HoverDetector {
 	private isOverEditor(e: MouseEvent): boolean {
 		return !!document
 			.elementFromPoint(e.clientX, e.clientY)
-			?.closest(".workspace-leaf.mod-active");
+			?.closest('.workspace-leaf.mod-active');
 	}
 
 	/**
@@ -209,9 +199,9 @@ export class HoverDetector {
 			this.shownSides.add(side);
 			// Disable sentinel pointer-events when top is shown, so clicks pass through
 			if (side === Side.top && this.sentinelTop)
-				this.sentinelTop.style.pointerEvents = "none";
+				this.sentinelTop.style.pointerEvents = 'none';
 			// Button is a child of ribbon — show it on left hover too
-			if (side === Side.left) this.manager.show("leftToggleBtn");
+			if (side === Side.left) this.manager.show('leftToggleBtn');
 			this.onSideReveal?.(side);
 		}
 	}
@@ -248,8 +238,8 @@ export class HoverDetector {
 	 * when the cursor enters their natural (pre-hide) bounding rect.
 	 */
 	private checkPositionReveal(key: string, e: MouseEvent): void {
-		if (!this.manager.getActiveKeys().includes(key)) return;
-		const rect = this.manager.getNaturalRect(key);
+		if (!this.manager.getManagedKeys().includes(key)) return;
+		const rect = this.manager.getOriginalRect(key);
 		if (!rect) return;
 		if (
 			e.clientX >= rect.left &&
@@ -267,7 +257,7 @@ export class HoverDetector {
 	 * @returns The right coordinate of the editor, or null if not found.
 	 */
 	private getEditorRight(): number | null {
-		const el = document.querySelector(".cm-scroller");
+		const el = document.querySelector('.cm-scroller');
 		return el ? el.getBoundingClientRect().right : null;
 	}
 
