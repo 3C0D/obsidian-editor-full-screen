@@ -1,1 +1,5 @@
-Major rewrite: single full screen mode with modal for element configuration. Added sidebar support - left sidebar reveals on ribbon hover, right sidebar opens with Shift + movement toward right edge. Elements hidden by default reappear on hover. Updated descriptions and settings UI
+🖨 Print improvements
+
+- Fixed metadata appearing above title when both are enabled
+- Advanced rendering now triggers correctly regardless of which note is focused
+- Temp files are now only created for selection capture
