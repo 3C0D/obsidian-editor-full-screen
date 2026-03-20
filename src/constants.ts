@@ -76,7 +76,7 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		exitPadding: 10,
 	},
 	rightSidebar: {
-		selector: '.workspace-sidedock.mod-right',
+		selector: '.mod-right-split',
 		side: Side.right,
 		exitPadding: 10,
 	},

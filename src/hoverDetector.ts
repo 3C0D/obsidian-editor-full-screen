@@ -154,24 +154,22 @@ export class HoverDetector {
 			}
 		});
 
-		// Hide left and right sides when cursor returns to editor
+		// Hide right sidebar when cursor moves away from it
+		if (this.rightSidebarOpen) {
+			const sidebarLeft = this.getRightSidebarLeft();
+			if (e.clientX < sidebarLeft - EDGE_THRESHOLD) {
+				this.rightSidebarOpen = false;
+				this.onSideHide?.(Side.right);
+			}
+		}
+
+		// Hide left side when cursor returns to editor
 		if (this.isOverEditor(e)) {
 			if (this.shownSides.has(Side.left)) {
 				this.manager.hideBySide(Side.left);
 				this.onSideHide?.(Side.left);
 				this.shownSides.delete(Side.left);
 				if (!this.shownSides.has(Side.top)) this.manager.hide('leftToggleBtn');
-			}
-			// Right sidebar: close only if cursor was NOT already near the trigger zone
-			// (prevents immediate close when opening from editor edge)
-			if (this.rightSidebarOpen) {
-				const editorRight = this.getEditorRight();
-				const wasNearRightEdge =
-					editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD;
-				if (!wasNearRightEdge) {
-					this.rightSidebarOpen = false;
-					this.onSideHide?.(Side.right);
-				}
 			}
 		}
 	}
@@ -262,6 +260,15 @@ export class HoverDetector {
 	private getEditorRight(): number | null {
 		const el = document.querySelector('.cm-scroller');
 		return el ? el.getBoundingClientRect().right : null;
+	}
+
+	/**
+	 * Gets the left edge of the right sidebar.
+	 * @returns The left coordinate of the right sidebar, or window width if not found.
+	 */
+	private getRightSidebarLeft(): number {
+		const el = document.querySelector('.mod-right-split') as HTMLElement | null;
+		return el ? el.getBoundingClientRect().left : window.innerWidth;
 	}
 
 	/**
