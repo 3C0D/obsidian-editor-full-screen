@@ -105,11 +105,7 @@ export default class EditorFullScreen extends Plugin {
 			}
 		};
 		this.hoverDetector.onSideHide = (side: Side): void => {
-			if (
-				side === Side.left &&
-				this.settings.hideLeftSidebar &&
-				this.hoverDetector.sidesHave(Side.left)
-			) {
+			if (side === Side.left && this.settings.hideLeftSidebar) {
 				collapseSidebar(this.app, 'left');
 			}
 			if (side === Side.right && this.settings.hideRightSidebar) {

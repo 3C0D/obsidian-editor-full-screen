@@ -163,26 +163,18 @@ export class HoverDetector {
 			}
 		}
 
-		// Hide left side when cursor returns to editor
-		if (this.isOverEditor(e)) {
-			if (this.shownSides.has(Side.left)) {
+		// Hide left side when cursor moves away from sidebar
+		if (this.shownSides.has(Side.left)) {
+			const sidebarRight = this.getLeftSidebarRight();
+			if (e.clientX > sidebarRight + EDGE_THRESHOLD) {
 				this.manager.hideBySide(Side.left);
-				this.onSideHide?.(Side.left);
 				this.shownSides.delete(Side.left);
 				if (!this.shownSides.has(Side.top)) this.manager.hide('leftToggleBtn');
+				this.onSideHide?.(Side.left);
 			}
 		}
-	}
 
-	/**
-	 * Determines if the cursor is currently over the active editor area.
-	 * @param e - The mouse event containing cursor position.
-	 * @returns True if the cursor is over the active workspace leaf, false otherwise.
-	 */
-	private isOverEditor(e: MouseEvent): boolean {
-		return !!document
-			.elementFromPoint(e.clientX, e.clientY)
-			?.closest('.workspace-leaf.mod-active');
+
 	}
 
 	/**
@@ -217,10 +209,10 @@ export class HoverDetector {
 
 		switch (side) {
 			case Side.left:
-				// Left sidebar close is handled by isOverEditor in checkHide
+				// Left sidebar close is handled by position check in checkHide
 				return false;
 			case Side.right:
-				// Right sidebar close is handled by isOverEditor in checkHide
+				// Right sidebar close is handled by position check in checkHide
 				return false;
 			case Side.top:
 				return e.clientY > rect.bottom + pad;
@@ -272,9 +264,11 @@ export class HoverDetector {
 	}
 
 	/**
-	 * Check if a side currently has its elements shown.
+	 * Gets the right edge of the left sidebar.
+	 * @returns The right coordinate of the left sidebar, or 0 if not found.
 	 */
-	sidesHave(side: Side): boolean {
-		return this.shownSides.has(side);
+	private getLeftSidebarRight(): number {
+		const el = document.querySelector('.mod-left-split') as HTMLElement | null;
+		return el ? el.getBoundingClientRect().right : 0;
 	}
 }
