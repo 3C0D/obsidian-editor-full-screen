@@ -85,7 +85,7 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	activateMode(): void {
 		this.isFullScreen = true;
-		this.elementManager.setManagedKeys(this.buildActiveKeys());
+		this.elementManager.setManagedKeys(this.buildManagedKeys());
 
 		// Collapse sidebars if enabled in settings
 		if (this.settings.hideLeftSidebar) {
@@ -151,7 +151,7 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	reapplyMode(): void {
 		this.elementManager.showAllElements();
-		this.elementManager.setManagedKeys(this.buildActiveKeys());
+		this.elementManager.setManagedKeys(this.buildManagedKeys());
 		this.elementManager.hideManaged();
 
 		// Update sidebar visibility based on current settings
@@ -162,7 +162,7 @@ export default class EditorFullScreen extends Plugin {
 	 * Builds the list of element keys to manage based on current settings.
 	 * @returns Array of element keys to hide in full screen mode.
 	 */
-	private buildActiveKeys(): string[] {
+	private buildManagedKeys(): string[] {
 		const keys: string[] = [];
 		if (this.settings.hideTopBar) keys.push('tabHeader', 'titleBar');
 		if (this.settings.hideRibbon) keys.push('ribbon', 'leftToggleBtn');

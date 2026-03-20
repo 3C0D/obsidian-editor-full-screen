@@ -239,7 +239,7 @@ export class HoverDetector {
 	 */
 	private checkPositionReveal(key: string, e: MouseEvent): void {
 		if (!this.manager.getManagedKeys().includes(key)) return;
-		const rect = this.manager.getOriginalRect(key);
+		const rect = this.manager.getPreHideRect(key);
 		if (!rect) return;
 		if (
 			e.clientX >= rect.left &&
@@ -263,8 +263,6 @@ export class HoverDetector {
 
 	/**
 	 * Check if a side currently has its elements shown.
-	 * @param side - The side to check.
-	 * @returns True if the side has its elements shown.
 	 */
 	sidesHave(side: Side): boolean {
 		return this.shownSides.has(side);

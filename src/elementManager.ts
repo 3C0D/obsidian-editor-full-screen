@@ -72,27 +72,50 @@ export class ElementManager {
 		);
 	}
 
-	/** Returns combined bounding rect for elements on the same side. Works even when elements are hidden (uses getBoundingClientRect which returns layout dimensions, not visual). */
+	/**
+	 * Returns the combined bounding rect for all managed elements on the given side.
+	 * Used by HoverDetector to define the exit zone: the region the mouse must leave
+	 * to trigger hiding the revealed elements.
+	 *
+	 * Uses pre-hide snapshots (preHideRects) instead of live getBoundingClientRect,
+	 * because hidden elements have height:0 in the DOM — live values would collapse
+	 * the exit zone to nothing. Coordinates are relative to the Obsidian viewport.
+	 *
+	 * Falls back to live rect if no snapshot exists (defensive: covers the case where
+	 * getCombinedRect is called before hideManaged() has run, meaning the element is
+	 * still visible and live values are correct).
+	 */
 	getCombinedRect(side: Side): DOMRect | null {
 		const keys = this.getKeysBySide(side);
 		if (keys.length === 0) return null;
 
+		// Start with inverted extremes so any real value wins the first comparison
 		let left = Infinity,
 			top = Infinity,
 			right = -Infinity,
 			bottom = -Infinity;
+
 		keys.forEach(key => {
 			const el = this.getEl(key);
 			if (!el) return;
+
+			// r is only used as fallback — live values are wrong once element is hidden
 			const r = el.getBoundingClientRect();
 			const preHideRect = this.preHideRects.get(key);
+
+			const preHideLeft = preHideRect?.left ?? r.left;
+			const preHideRight = preHideRect?.right ?? r.right;
 			const preHideTop = preHideRect?.top ?? r.top;
 			const preHideHeight = preHideRect?.height ?? r.height;
 
-			left = Math.min(left, r.left);
+			// Expand the bounding box to include this element.
+			// left/top: take the smallest value (closest to top-left corner).
+			// right: take the largest value (furthest right).
+			// bottom: reconstruct from top + height — no direct snapshot of bottom edge,
+			// and we can't trust r.bottom since height:0 collapses it.
+			left = Math.min(left, preHideLeft);
 			top = Math.min(top, preHideTop);
-			right = Math.max(right, r.right);
-			// Use natural rect so hidden (height:0) elements don't collapse the exit zone
+			right = Math.max(right, preHideRight);
 			bottom = Math.max(bottom, preHideTop + preHideHeight);
 		});
 
@@ -106,7 +129,7 @@ export class ElementManager {
 	}
 
 	/** Returns the snapshotted rect of an element (taken before hiding). */
-	getOriginalRect(key: string): DOMRect | null {
+	getPreHideRect(key: string): DOMRect | null {
 		return this.preHideRects.get(key) ?? null;
 	}
 
