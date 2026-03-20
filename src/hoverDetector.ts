@@ -145,11 +145,8 @@ export class HoverDetector {
 				// Re-enable sentinel pointer-events when top is hidden
 				if (side === Side.top && this.sentinelTop)
 					this.sentinelTop.style.pointerEvents = 'all';
-				// Re-hide toggle button only if neither linked side is shown
-				if (side === Side.left && !this.shownSides.has(Side.top) && this.manager.getManagedKeys().includes('leftToggleBtn'))
-					this.manager.hide('leftToggleBtn');
-				if (side === Side.top && !this.shownSides.has(Side.left) && this.manager.getManagedKeys().includes('leftToggleBtn'))
-					this.manager.hide('leftToggleBtn');
+				// Update toggle button after side is removed from shownSides
+				this.updateToggleBtn();
 				this.onSideHide?.(side);
 			}
 		});
@@ -169,12 +166,25 @@ export class HoverDetector {
 			if (e.clientX > sidebarRight + EDGE_THRESHOLD) {
 				this.manager.hideBySide(Side.left);
 				this.shownSides.delete(Side.left);
-				if (!this.shownSides.has(Side.top) && this.manager.getManagedKeys().includes('leftToggleBtn')) this.manager.hide('leftToggleBtn');
+				this.updateToggleBtn();
 				this.onSideHide?.(Side.left);
 			}
 		}
 
 
+	}
+
+	/**
+	 * Updates the visibility of the toggle button based on shown sides.
+	 * Shows the button if either left or top side is shown, otherwise hides it.
+	 */
+	private updateToggleBtn(): void {
+		if (!this.manager.getManagedKeys().includes('leftToggleBtn')) return;
+		if (this.shownSides.has(Side.left) || this.shownSides.has(Side.top)) {
+			this.manager.show('leftToggleBtn');
+		} else {
+			this.manager.hide('leftToggleBtn');
+		}
 	}
 
 	/**
@@ -191,7 +201,7 @@ export class HoverDetector {
 			if (side === Side.top && this.sentinelTop)
 				this.sentinelTop.style.pointerEvents = 'none';
 			// Button is a child of ribbon — show it on left hover too
-			if (side === Side.left && this.manager.getManagedKeys().includes('leftToggleBtn')) this.manager.show('leftToggleBtn');
+			if (side === Side.left) this.updateToggleBtn();
 			this.onSideReveal?.(side);
 		}
 	}
