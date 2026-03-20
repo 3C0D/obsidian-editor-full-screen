@@ -234,8 +234,10 @@ export class HoverDetector {
 	}
 
 	/**
-	 * For elements not sitting at a viewport edge, reveal their side
-	 * when the cursor enters their natural (pre-hide) bounding rect.
+	 * Reveals the side of an element that is not anchored to a viewport edge
+	 * and therefore cannot be detected by edge-proximity checks.
+	 * Triggers when the cursor enters the element's pre-hide bounding rect.
+	 * Currently used for viewHeader only (sits inside the editor pane, not at the screen top).
 	 */
 	private checkPositionReveal(key: string, e: MouseEvent): void {
 		if (!this.manager.getManagedKeys().includes(key)) return;
@@ -253,7 +255,8 @@ export class HoverDetector {
 
 	/**
 	 * The right edge of the editor scroll area.
-	 * .cm-scroller does not change width when right sidebar toggles.
+	 * Note: .cm-scroller shrinks when the right sidebar is open,
+	 * so this value changes depending on sidebar state.
 	 * @returns The right coordinate of the editor, or null if not found.
 	 */
 	private getEditorRight(): number | null {
