@@ -161,7 +161,10 @@ export default class EditorFullScreen extends Plugin {
 	private buildManagedKeys(): string[] {
 		const keys: string[] = [];
 		if (this.settings.hideTopBar) keys.push('tabHeader', 'titleBar');
-		if (this.settings.hideRibbon) keys.push('ribbon', 'leftToggleBtn');
+		if (this.settings.hideRibbon) {
+			keys.push('ribbon');
+			if (this.settings.hideTopBar) keys.push('leftToggleBtn');
+		}
 		if (this.settings.hideViewHeader) keys.push('viewHeader');
 		if (this.settings.hideStatusBar) keys.push('statusBar');
 		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager

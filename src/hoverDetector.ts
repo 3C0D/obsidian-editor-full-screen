@@ -146,9 +146,9 @@ export class HoverDetector {
 				if (side === Side.top && this.sentinelTop)
 					this.sentinelTop.style.pointerEvents = 'all';
 				// Re-hide toggle button only if neither linked side is shown
-				if (side === Side.left && !this.shownSides.has(Side.top))
+				if (side === Side.left && !this.shownSides.has(Side.top) && this.manager.getManagedKeys().includes('leftToggleBtn'))
 					this.manager.hide('leftToggleBtn');
-				if (side === Side.top && !this.shownSides.has(Side.left))
+				if (side === Side.top && !this.shownSides.has(Side.left) && this.manager.getManagedKeys().includes('leftToggleBtn'))
 					this.manager.hide('leftToggleBtn');
 				this.onSideHide?.(side);
 			}
@@ -169,7 +169,7 @@ export class HoverDetector {
 			if (e.clientX > sidebarRight + EDGE_THRESHOLD) {
 				this.manager.hideBySide(Side.left);
 				this.shownSides.delete(Side.left);
-				if (!this.shownSides.has(Side.top)) this.manager.hide('leftToggleBtn');
+				if (!this.shownSides.has(Side.top) && this.manager.getManagedKeys().includes('leftToggleBtn')) this.manager.hide('leftToggleBtn');
 				this.onSideHide?.(Side.left);
 			}
 		}
@@ -191,7 +191,7 @@ export class HoverDetector {
 			if (side === Side.top && this.sentinelTop)
 				this.sentinelTop.style.pointerEvents = 'none';
 			// Button is a child of ribbon — show it on left hover too
-			if (side === Side.left) this.manager.show('leftToggleBtn');
+			if (side === Side.left && this.manager.getManagedKeys().includes('leftToggleBtn')) this.manager.show('leftToggleBtn');
 			this.onSideReveal?.(side);
 		}
 	}
