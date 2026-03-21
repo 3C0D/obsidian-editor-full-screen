@@ -122,3 +122,68 @@ provides enough tolerance to absorb it.
 (`tabHeader`, `titleBar`) — the combined rect wraps both into a single exit zone.
 The status bar is a single element at the bottom. The ribbon is a single element on the left.
 The logic is identical for all of them; only the `Side` enum value differs.
+
+---
+
+## Multi-split view-header handling
+
+View-headers (per-leaf breadcrumb / file title bars) are **not** managed by `ElementManager`.
+Unlike edge-anchored elements, there can be an arbitrary number of them (one per split pane),
+and they are created/destroyed dynamically when the user splits or closes panes.
+
+### CSS-based hiding
+
+Instead of tracking N DOM elements in `ElementManager`, we use a **body class**
+(`efs-hide-viewheader`) that hides all view-headers at once via CSS:
+
+```
+.efs-hide-viewheader .mod-root .workspace-leaf-content > .view-header {
+    opacity: 0; pointer-events: none; position: absolute; height: 0;
+}
+```
+
+This works regardless of how many splits exist, with zero DOM tracking overhead.
+
+### Position-based reveal
+
+`HoverDetector.checkViewHeaderReveal()` runs on every `mousemove` when view-header hiding is
+active. It queries **all** view-headers via `querySelectorAll`, then for each one:
+
+1. Gets the parent `.workspace-leaf-content` bounding rect (always in layout, even when the
+   header itself is collapsed to `height: 0`).
+2. Checks if the cursor is within `EDGE_THRESHOLD` px of the parent's top edge **and**
+   horizontally within the parent's bounds.
+3. If yes, adds `efs-revealed` to that specific header (CSS override restores visibility).
+4. When the cursor moves away, removes `efs-revealed`.
+
+Each header is revealed/hidden independently — hovering near pane A's top reveals only A's
+header, not B's.
+
+### Why not snapshots?
+
+Pre-hide snapshots (`preHideRects`) would need to store N rects and be refreshed every time a
+split is created, destroyed, or resized. Using the **parent container's live position** avoids
+all of this: the parent is always in layout and its `getBoundingClientRect()` is always valid.
+
+### Zone linking with top bar
+
+When both `hideTopBar` and `hideViewHeader` are enabled, top-adjacent view-headers and the top
+bar form a **linked zone**: revealing one reveals the other, and both hide only when the cursor
+exits below the combined area.
+
+A view-header is "adjacent" if its `.workspace-leaf-content` parent starts within
+`EDGE_THRESHOLD * 2` px of the viewport top. In a horizontal split, only the top pane qualifies;
+the bottom pane's view-header works independently.
+
+The exit condition for `Side.top` is extended: when an adjacent header is revealed, the top bar
+stays visible until the cursor moves below `header.bottom + exitPadding`.
+
+---
+
+## Multi-split tab header handling
+
+Tab header containers (`.workspace-tab-header-container`) have the same single-element problem
+as view-headers: with splits, each group has its own container. They are hidden via the
+`efs-hide-topbar` body class. Since tab headers are edge-anchored at the viewport top, the
+existing `Side.top` edge detection handles reveal/hide — only the hiding mechanism changed
+from per-element `.hide-el` to global CSS.

@@ -1,6 +1,9 @@
 import { Side } from './types.ts';
 import { ElementManager } from './elementManager.ts';
-import { ELEMENT_CONFIGS } from './constants.ts';
+import {
+	VIEW_HEADER_SELECTOR,
+	TAB_HEADER_SELECTOR,
+} from './constants.ts';
 
 // px from viewport edge that triggers element reveal
 const EDGE_THRESHOLD = 40;
@@ -32,7 +35,19 @@ export class HoverDetector {
 	// (WorkspaceSidedock.expand/collapse), not by elementManager.
 	private rightSidebarOpen = false;
 
-	// Sentinel elements for catching fast mouse entries at viewport edges (especially top).
+	// Whether view-header hover detection is active
+	viewHeaderEnabled = false;
+
+	// Whether top bar hiding is active (for zone linking)
+	topBarEnabled = false;
+
+	// Currently revealed view-headers (managed via CSS class)
+	private revealedHeaders = new Set<HTMLElement>();
+
+	// Currently revealed tab headers (managed via CSS class)
+	private revealedTabHeaders = new Set<HTMLElement>();
+
+	// Sentinel elements for catching fast mouse entries
 	private sentinelTop: HTMLDivElement | null = null;
 
 	constructor(private manager: ElementManager) {}
@@ -42,6 +57,7 @@ export class HoverDetector {
 	 */
 	start(): void {
 		document.addEventListener('mousemove', this.handleMouseMove);
+		document.addEventListener('dragover', this.handleDragOver);
 		this.createSentinels();
 	}
 
@@ -50,9 +66,12 @@ export class HoverDetector {
 	 */
 	stop(): void {
 		document.removeEventListener('mousemove', this.handleMouseMove);
+		document.removeEventListener('dragover', this.handleDragOver);
 		this.removeSentinels();
 		this.shownSides.clear();
 		this.rightSidebarOpen = false;
+		this.clearRevealedHeaders();
+		this.clearRevealedTabHeaders();
 	}
 
 	/**
@@ -95,6 +114,29 @@ export class HoverDetector {
 	private handleMouseMove = (e: MouseEvent): void => {
 		this.checkReveal(e);
 		this.checkHide(e);
+		if (this.viewHeaderEnabled) {
+			this.checkViewHeaderReveal(e);
+		}
+		if (this.topBarEnabled) {
+			this.checkTabHeaderReveal(e);
+		}
+	};
+
+	/**
+	 * During drag & drop, mousemove does not fire.
+	 * Use dragover to reveal top bar + tab headers
+	 * when dragging near the top edge.
+	 */
+	private handleDragOver = (e: DragEvent): void => {
+		if (e.clientY <= EDGE_THRESHOLD) {
+			this.revealSide(Side.top);
+		}
+		if (this.topBarEnabled) {
+			this.checkTabHeaderReveal(e);
+		}
+		if (this.viewHeaderEnabled) {
+			this.checkViewHeaderReveal(e);
+		}
 	};
 
 	/**
@@ -128,8 +170,6 @@ export class HoverDetector {
 			}
 		}
 
-		// viewHeader is not at the viewport edge: detect by its stored position
-		this.checkPositionReveal('viewHeader', e);
 	}
 
 	/**
@@ -142,10 +182,10 @@ export class HoverDetector {
 			if (this.isOutside(e, side)) {
 				this.manager.hideBySide(side);
 				this.shownSides.delete(side);
-				// Re-enable sentinel pointer-events when top is hidden
+				// Re-enable sentinel when top is hidden
 				if (side === Side.top && this.sentinelTop)
 					this.sentinelTop.style.pointerEvents = 'all';
-				// Update toggle button after side is removed from shownSides
+				// Update toggle button
 				this.updateToggleBtn();
 				this.onSideHide?.(side);
 			}
@@ -193,14 +233,11 @@ export class HoverDetector {
 	 * @param side - The side to reveal (left, top, bottom, or right).
 	 */
 	private revealSide(side: Side): void {
-		// Avoid redundant classList ops if already shown
 		if (!this.shownSides.has(side)) {
 			this.manager.showBySide(side);
 			this.shownSides.add(side);
-			// Disable sentinel pointer-events when top is shown, so clicks pass through
 			if (side === Side.top && this.sentinelTop)
 				this.sentinelTop.style.pointerEvents = 'none';
-			// Button is a child of ribbon — show it on left hover too
 			if (side === Side.left) this.updateToggleBtn();
 			this.onSideReveal?.(side);
 		}
@@ -219,12 +256,35 @@ export class HoverDetector {
 
 		switch (side) {
 			case Side.left:
-				// Left sidebar close is handled by position check in checkHide
+				// Handled by position check in checkHide
 				return false;
 			case Side.right:
-				// Right sidebar close is handled by position check in checkHide
+				// Handled by position check in checkHide
 				return false;
 			case Side.top:
+				// Zone linking: if an adjacent header is
+				// revealed, extend the stay-open zone to
+				// include the header area.
+				if (this.viewHeaderEnabled) {
+					for (const h of this.revealedHeaders) {
+						const p = h.closest(
+							'.workspace-leaf-content'
+						) as HTMLElement | null;
+						if (!p) continue;
+						const pt = p.getBoundingClientRect();
+						if (pt.top >= EDGE_THRESHOLD * 2) continue;
+						// Adjacent: keep top bar while cursor
+						// is above header bottom + pad
+						const hb = h.getBoundingClientRect();
+						if (
+							e.clientY <= hb.bottom + pad &&
+							e.clientX >= pt.left &&
+							e.clientX <= pt.right
+						) {
+							return false;
+						}
+					}
+				}
 				return e.clientY > rect.bottom + pad;
 			case Side.bottom:
 				return e.clientY < rect.top - pad;
@@ -234,23 +294,138 @@ export class HoverDetector {
 	}
 
 	/**
-	 * Reveals the side of an element that is not anchored to a viewport edge
-	 * and therefore cannot be detected by edge-proximity checks.
-	 * Triggers when the cursor enters the element's pre-hide bounding rect.
-	 * Currently used for viewHeader only (sits inside the editor pane, not at the screen top).
+	 * Checks all view-headers across every split pane.
+	 * Uses the parent .workspace-leaf-content position
+	 * (always in layout) to detect cursor proximity,
+	 * then toggles .efs-revealed on individual headers.
 	 */
-	private checkPositionReveal(key: string, e: MouseEvent): void {
-		if (!this.manager.getManagedKeys().includes(key)) return;
-		const rect = this.manager.getPreHideRect(key);
-		if (!rect) return;
-		if (
-			e.clientX >= rect.left &&
-			e.clientX <= rect.right &&
-			e.clientY >= rect.top - EDGE_THRESHOLD &&
-			e.clientY <= rect.bottom
-		) {
-			this.revealSide(ELEMENT_CONFIGS[key].side);
-		}
+	private checkViewHeaderReveal(e: MouseEvent): void {
+		const headers = document.querySelectorAll(
+			VIEW_HEADER_SELECTOR
+		) as NodeListOf<HTMLElement>;
+
+		const nowRevealed = new Set<HTMLElement>();
+		const topShown = this.shownSides.has(Side.top);
+
+		headers.forEach(header => {
+			const parent = header.closest(
+				'.workspace-leaf-content'
+			) as HTMLElement | null;
+			if (!parent) return;
+
+			const pr = parent.getBoundingClientRect();
+			const inX =
+				e.clientX >= pr.left &&
+				e.clientX <= pr.right;
+			const adjacent =
+				pr.top < EDGE_THRESHOLD * 2;
+
+			// Standard: cursor near header top
+			const nearHeader =
+				inX &&
+				e.clientY >= pr.top &&
+				e.clientY <= pr.top + EDGE_THRESHOLD;
+
+			// Linked: top bar shown + adjacent
+			const linkedReveal =
+				topShown &&
+				adjacent &&
+				inX &&
+				e.clientY <=
+					pr.top + EDGE_THRESHOLD;
+
+			if (nearHeader || linkedReveal) {
+				header.classList.add('efs-revealed');
+				nowRevealed.add(header);
+				if (adjacent && this.topBarEnabled) {
+					this.revealSide(Side.top);
+				}
+			}
+		});
+
+		// Remove reveal from headers no longer hovered
+		this.revealedHeaders.forEach(h => {
+			if (!nowRevealed.has(h)) {
+				h.classList.remove('efs-revealed');
+			}
+		});
+		this.revealedHeaders = nowRevealed;
+	}
+
+	/**
+	 * Checks all tab header containers.
+	 * Reveals them by proximity or when their group's
+	 * view-header is already revealed.
+	 */
+	private checkTabHeaderReveal(e: MouseEvent): void {
+		const tabs = document.querySelectorAll(
+			TAB_HEADER_SELECTOR
+		) as NodeListOf<HTMLElement>;
+
+		const nowRevealed = new Set<HTMLElement>();
+		const topShown = this.shownSides.has(Side.top);
+
+		tabs.forEach(tab => {
+			const tr = tab.getBoundingClientRect();
+			const inX =
+				e.clientX >= tr.left &&
+				e.clientX <= tr.right;
+			const adjacent =
+				tr.top < EDGE_THRESHOLD * 2;
+
+			// Near tab header rect
+			const nearTab =
+				inX &&
+				e.clientY >= tr.top &&
+				e.clientY <= tr.bottom + EDGE_THRESHOLD;
+
+			// Linked: top bar shown + adjacent
+			const linkedTop =
+				topShown && adjacent && inX;
+
+			// Group link: view-header in same group
+			const group = tab.closest(
+				'.workspace-tabs'
+			);
+			const groupLinked =
+				group !== null &&
+				[...this.revealedHeaders].some(
+					h =>
+						h.closest('.workspace-tabs') ===
+						group
+				);
+
+			if (nearTab || linkedTop || groupLinked) {
+				tab.classList.add('efs-revealed');
+				nowRevealed.add(tab);
+				if (adjacent) {
+					this.revealSide(Side.top);
+				}
+			}
+		});
+
+		this.revealedTabHeaders.forEach(h => {
+			if (!nowRevealed.has(h)) {
+				h.classList.remove('efs-revealed');
+			}
+		});
+		this.revealedTabHeaders = nowRevealed;
+	}
+
+	/** Clears all revealed view-headers. */
+	private clearRevealedHeaders(): void {
+		this.revealedHeaders.forEach(h =>
+			h.classList.remove('efs-revealed')
+		);
+		this.revealedHeaders.clear();
+	}
+
+	/** Clears all revealed tab headers. */
+	private clearRevealedTabHeaders(): void {
+		this.revealedTabHeaders.forEach(h =>
+			h.classList.remove('efs-revealed')
+		);
+		this.revealedTabHeaders.clear();
 	}
 
 	/**

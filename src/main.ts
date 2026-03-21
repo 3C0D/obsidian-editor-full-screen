@@ -21,6 +21,10 @@ export default class EditorFullScreen extends Plugin {
 	private elementManager: ElementManager;
 	private hoverDetector: HoverDetector;
 
+	// Sidebar state saved before activation
+	private leftWasCollapsed = false;
+	private rightWasCollapsed = false;
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
@@ -87,6 +91,14 @@ export default class EditorFullScreen extends Plugin {
 		this.isFullScreen = true;
 		this.elementManager.setManagedKeys(this.buildManagedKeys());
 
+		// Save sidebar state before collapsing
+		const leftDock = this.app.workspace.leftSplit as
+			import('obsidian').WorkspaceSidedock;
+		const rightDock = this.app.workspace.rightSplit as
+			import('obsidian').WorkspaceSidedock;
+		this.leftWasCollapsed = leftDock.collapsed;
+		this.rightWasCollapsed = rightDock.collapsed;
+
 		// Collapse sidebars if enabled in settings
 		if (this.settings.hideLeftSidebar) {
 			collapseSidebar(this.app, 'left');
@@ -115,16 +127,22 @@ export default class EditorFullScreen extends Plugin {
 
 		this.elementManager.hideManaged();
 		document.body.classList.add('efs-active');
-		this.hoverDetector.start();
 
-		// Refresh viewHeader on leaf change (new leaf = new DOM node)
-		this.registerEvent(
-			this.app.workspace.on('active-leaf-change', () => {
-				if (this.isFullScreen && this.elementManager.getManagedKeys().includes('viewHeader')) {
-					this.elementManager.refreshElement('viewHeader');
-				}
-			})
-		);
+		// Top bar: CSS-based multi-split hiding
+		if (this.settings.hideTopBar) {
+			document.body.classList.add('efs-hide-topbar');
+		}
+
+		// View-header: CSS-based multi-split hiding
+		if (this.settings.hideViewHeader) {
+			document.body.classList.add('efs-hide-viewheader');
+		}
+		this.hoverDetector.viewHeaderEnabled =
+			this.settings.hideViewHeader;
+		this.hoverDetector.topBarEnabled =
+			this.settings.hideTopBar;
+
+		this.hoverDetector.start();
 	}
 
 	/**
@@ -138,16 +156,26 @@ export default class EditorFullScreen extends Plugin {
 		this.hoverDetector.onSideReveal = null;
 		this.hoverDetector.onSideHide = null;
 
-		// Restore sidebars on deactivate
-		if (this.settings.hideLeftSidebar) {
+		// Restore sidebars to pre-activation state
+		if (
+			this.settings.hideLeftSidebar &&
+			!this.leftWasCollapsed
+		) {
 			expandSidebar(this.app, 'left');
 		}
-		if (this.settings.hideRightSidebar) {
+		if (
+			this.settings.hideRightSidebar &&
+			!this.rightWasCollapsed
+		) {
 			expandSidebar(this.app, 'right');
 		}
 
 		this.elementManager.showAllElements();
-		document.body.classList.remove('efs-active');
+		document.body.classList.remove(
+			'efs-active',
+			'efs-hide-topbar',
+			'efs-hide-viewheader'
+		);
 	}
 
 	/**
@@ -159,6 +187,28 @@ export default class EditorFullScreen extends Plugin {
 		this.elementManager.setManagedKeys(this.buildManagedKeys());
 		this.elementManager.hideManaged();
 
+		// Toggle top bar CSS class based on setting
+		if (this.settings.hideTopBar) {
+			document.body.classList.add('efs-hide-topbar');
+		} else {
+			document.body.classList.remove(
+				'efs-hide-topbar'
+			);
+		}
+
+		// Toggle view-header CSS class based on setting
+		if (this.settings.hideViewHeader) {
+			document.body.classList.add('efs-hide-viewheader');
+		} else {
+			document.body.classList.remove(
+				'efs-hide-viewheader'
+			);
+		}
+		this.hoverDetector.viewHeaderEnabled =
+			this.settings.hideViewHeader;
+		this.hoverDetector.topBarEnabled =
+			this.settings.hideTopBar;
+
 		// Update sidebar visibility based on current settings
 		updateSidebarVisibility(this);
 	}
@@ -169,12 +219,13 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	private buildManagedKeys(): string[] {
 		const keys: string[] = [];
-		if (this.settings.hideTopBar) keys.push('tabHeader', 'titleBar');
+		if (this.settings.hideTopBar) keys.push('titleBar');
+		// tabHeader: managed via CSS body class, not elementManager
 		if (this.settings.hideRibbon) {
 			keys.push('ribbon');
 			if (this.settings.hideTopBar) keys.push('leftToggleBtn');
 		}
-		if (this.settings.hideViewHeader) keys.push('viewHeader');
+		// viewHeader: managed via CSS body class, not elementManager
 		if (this.settings.hideStatusBar) keys.push('statusBar');
 		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager
 		return keys;

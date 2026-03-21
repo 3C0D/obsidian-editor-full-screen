@@ -133,18 +133,6 @@ export class ElementManager {
 		return this.preHideRects.get(key) ?? null;
 	}
 
-/**
- * Refreshes the pre-hide snapshot and re-hides an element.
- * Used when the DOM node changes (e.g., active leaf change creates a new view-header).
- */
-	refreshElement(key: string): void {
-		this.preHideRects.delete(key);
-		const el = this.getEl(key);
-		if (el) {
-			this.preHideRects.set(key, el.getBoundingClientRect());
-			this.hide(key);
-		}
-	}
 
 	/** Returns DOM element by key, or null. */
 	private getEl(key: string): HTMLElement | null {

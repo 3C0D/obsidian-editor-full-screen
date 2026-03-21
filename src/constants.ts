@@ -31,6 +31,17 @@ export const TOGGLE_ITEMS: ToggleItem[] = [
 	{ key: 'hideStatusBar', label: 'Status bar', desc: 'Bottom status bar' },
 ];
 
+/**
+ * Selector for view-header elements inside editor panes.
+ * Used by HoverDetector for multi-split position-based reveal.
+ * Not in ELEMENT_CONFIGS — managed via CSS body class instead.
+ */
+export const VIEW_HEADER_SELECTOR =
+	'.mod-root .workspace-leaf-content > .view-header';
+
+export const TAB_HEADER_SELECTOR =
+	'.mod-root .workspace-tabs .workspace-tab-header-container';
+
 /** Configuration for UI elements to be hidden/shown on hover. */
 export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	ribbon: {
@@ -38,24 +49,16 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		side: Side.left,
 		exitPadding: 10,
 	},
-	tabHeader: {
-		// Tab strip at the top of the editor pane
-		selector: '.mod-root .workspace-tabs .workspace-tab-header-container',
-		side: Side.top,
-		exitPadding: 10,
-	},
+	// tabHeader removed — managed via CSS body class
+	// (efs-hide-topbar) to support multiple split groups.
 	titleBar: {
 		// OS-window buttons
 		selector: '.titlebar',
 		side: Side.top,
 		exitPadding: 10,
 	},
-	viewHeader: {
-		// Per-leaf header (breadcrumb / file title inside editor)
-		selector: '.workspace-leaf.mod-active .workspace-leaf-content > .view-header',
-		side: Side.top,
-		exitPadding: 10,
-	},
+	// viewHeader removed — managed via CSS body class
+	// (efs-hide-viewheader) to support multiple splits.
 	statusBar: {
 		selector: '.status-bar',
 		side: Side.bottom,

@@ -6,25 +6,63 @@
 
 /* Smooth fade for all managed elements */
 .workspace-ribbon.mod-left,
-.mod-root .workspace-tabs .workspace-tab-header-container,
 .titlebar,
 .status-bar,
 .workspace-sidedock.mod-left {
 	transition: opacity 0.25s ease;
 }
 
-/* view-header needs separate transition declaration
-   because its selector is more specific */
+/* Smooth fade for tab header containers + view-headers */
+.mod-root .workspace-tabs .workspace-tab-header-container,
 .mod-root .workspace-leaf-content > .view-header {
-	transition: opacity 0.25s ease;
+	transition:
+		opacity 0.25s ease,
+		height 0.25s ease;
 }
 
-/* When view-header is hidden, collapse its layout space so the
-   editor content starts at the top (opacity alone preserves height) */
-.efs-active .mod-root .workspace-leaf-content > .view-header.hide-el {
+/* Hide ALL tab header containers across all split groups.
+   Uses body class so every group is covered automatically. */
+.efs-hide-topbar
+	.mod-root
+	.workspace-tabs
+	.workspace-tab-header-container {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Reveal individual tab header on cursor proximity */
+.efs-hide-topbar
+	.mod-root
+	.workspace-tabs
+	.workspace-tab-header-container.efs-revealed {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Hide ALL view-headers across all splits when enabled.
+   Uses body class instead of per-element .hide-el so every split
+   is covered automatically, regardless of how many exist. */
+.efs-hide-viewheader
+	.mod-root
+	.workspace-leaf-content
+	> .view-header {
+	opacity: 0;
+	pointer-events: none;
 	position: absolute;
 	height: 0;
 	overflow: hidden;
+}
+
+/* Reveal individual view-header on cursor proximity */
+.efs-hide-viewheader
+	.mod-root
+	.workspace-leaf-content
+	> .view-header.efs-revealed {
+	opacity: 1;
+	pointer-events: auto;
+	position: relative;
+	height: auto;
+	overflow: visible;
 }
 
 /* When ribbon is hidden, keep only the sidebar toggle button visible.
