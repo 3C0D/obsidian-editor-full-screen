@@ -116,6 +116,15 @@ export default class EditorFullScreen extends Plugin {
 		this.elementManager.hideManaged();
 		document.body.classList.add('efs-active');
 		this.hoverDetector.start();
+
+		// Refresh viewHeader on leaf change (new leaf = new DOM node)
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				if (this.isFullScreen && this.elementManager.getManagedKeys().includes('viewHeader')) {
+					this.elementManager.refreshElement('viewHeader');
+				}
+			})
+		);
 	}
 
 	/**

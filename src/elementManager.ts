@@ -133,6 +133,19 @@ export class ElementManager {
 		return this.preHideRects.get(key) ?? null;
 	}
 
+	/**
+	 * Refreshes an element by updating its pre-hide rect and re-hiding it.
+	 * Used when the DOM element changes (e.g., on leaf change).
+	 */
+	refreshElement(key: string): void {
+		this.preHideRects.delete(key);
+		const el = this.getEl(key);
+		if (el) {
+			this.preHideRects.set(key, el.getBoundingClientRect());
+			this.hide(key);
+		}
+	}
+
 	/** Returns DOM element by key, or null. */
 	private getEl(key: string): HTMLElement | null {
 		return document.querySelector(ELEMENT_CONFIGS[key]?.selector) as HTMLElement | null;

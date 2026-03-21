@@ -52,7 +52,7 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	},
 	viewHeader: {
 		// Per-leaf header (breadcrumb / file title inside editor)
-		selector: '.mod-root .workspace-leaf-content > .view-header',
+		selector: '.workspace-leaf.mod-active .workspace-leaf-content > .view-header',
 		side: Side.top,
 		exitPadding: 10,
 	},
