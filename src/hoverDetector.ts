@@ -203,8 +203,10 @@ export class HoverDetector {
 	 * @param e - The mouse event containing cursor position.
 	 */
 	private checkReveal(e: MouseEvent): void {
-		// Use actual ribbon width if available, capped to avoid accidental triggers
-		if (this.ribbonEnabled || this.leftSidebarEnabled) {
+		const isMainDoc = (e.target as Node)?.ownerDocument === document;
+
+		// Left sidebar: only trigger from main window
+		if (isMainDoc && (this.ribbonEnabled || this.leftSidebarEnabled)) {
 			const ribbonEl = document.querySelector(
 				RIBBON_SELECTOR
 			) as HTMLElement | null;
@@ -214,19 +216,20 @@ export class HoverDetector {
 			if (e.clientX <= triggerWidth) this.revealSide(Side.left);
 		}
 
-		// Top: generous threshold handles fast upward swipes
-		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) this.revealSide(Side.top);
+		// Top: generous threshold handles fast upward swipes (per-window)
+		const evtDoc = (e.target as Node)?.ownerDocument ?? document;
+		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) this.revealSide(Side.top, evtDoc);
 
-		// Bottom: pull trigger zone up to stay above Windows taskbar
+		// Bottom: pull trigger zone up to stay above Windows taskbar (per-window)
 		if (
 			e.clientY >= window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN &&
 			this.statusBarEnabled
 		) {
-			this.revealSide(Side.bottom);
+			this.revealSide(Side.bottom, evtDoc);
 		}
 
-		// Right sidebar: Shift + near right edge → open once, then wait for editor return
-		if (!this.rightSidebarOpen && e.shiftKey) {
+		// Right sidebar: Shift + near right edge → open once, then wait for editor return (main window only)
+		if (isMainDoc && !this.rightSidebarOpen && e.shiftKey) {
 			const editorRight = this.getEditorRight();
 			if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD) {
 				this.rightSidebarOpen = true;
