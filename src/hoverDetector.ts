@@ -50,28 +50,79 @@ export class HoverDetector {
 	// Sentinel elements for catching fast mouse entries
 	private sentinelTop: HTMLDivElement | null = null;
 
+	// Tracked documents (main + popout windows)
+	private trackedDocs = new Set<Document>();
+
 	constructor(private manager: ElementManager) {}
 
 	/**
 	 * Starts hover detection by adding mousemove listener and creating sentinels.
 	 */
 	start(): void {
-		document.addEventListener('mousemove', this.handleMouseMove);
-		document.addEventListener('dragover', this.handleDragOver);
+		this.addDocument(document);
 		this.createSentinels();
 	}
 
 	/**
-	 * Stops hover detection by removing mousemove listener and sentinels, and resetting state.
+	 * Stops hover detection on all documents.
 	 */
 	stop(): void {
-		document.removeEventListener('mousemove', this.handleMouseMove);
-		document.removeEventListener('dragover', this.handleDragOver);
+		this.trackedDocs.forEach(doc =>
+			this.detachListeners(doc)
+		);
+		this.trackedDocs.clear();
 		this.removeSentinels();
 		this.shownSides.clear();
 		this.rightSidebarOpen = false;
 		this.clearRevealedHeaders();
 		this.clearRevealedTabHeaders();
+	}
+
+	/** Registers a popout document for hover detection. */
+	addDocument(doc: Document): void {
+		if (this.trackedDocs.has(doc)) return;
+		this.trackedDocs.add(doc);
+		this.attachListeners(doc);
+	}
+
+	/** Unregisters a popout document. */
+	removeDocument(doc: Document): void {
+		this.detachListeners(doc);
+		this.trackedDocs.delete(doc);
+	}
+
+	private attachListeners(doc: Document): void {
+		doc.addEventListener(
+			'mousemove',
+			this.handleMouseMove
+		);
+		doc.addEventListener(
+			'dragover',
+			this.handleDragOver
+		);
+	}
+
+	private detachListeners(doc: Document): void {
+		doc.removeEventListener(
+			'mousemove',
+			this.handleMouseMove
+		);
+		doc.removeEventListener(
+			'dragover',
+			this.handleDragOver
+		);
+	}
+
+	/** Queries all tracked documents for elements. */
+	private queryAllDocs<T extends Element>(
+		selector: string
+	): T[] {
+		const results: T[] = [];
+		for (const doc of this.trackedDocs) {
+			const els = doc.querySelectorAll(selector);
+			els.forEach(el => results.push(el as T));
+		}
+		return results;
 	}
 
 	/**
@@ -300,12 +351,15 @@ export class HoverDetector {
 	 * then toggles .efs-revealed on individual headers.
 	 */
 	private checkViewHeaderReveal(e: MouseEvent): void {
-		const headers = document.querySelectorAll(
-			VIEW_HEADER_SELECTOR
-		) as NodeListOf<HTMLElement>;
+		const headers =
+			this.queryAllDocs<HTMLElement>(
+				VIEW_HEADER_SELECTOR
+			);
 
 		const nowRevealed = new Set<HTMLElement>();
 		const topShown = this.shownSides.has(Side.top);
+		const evtDoc =
+			(e.target as Node)?.ownerDocument ?? document;
 
 		headers.forEach(header => {
 			const parent = header.closest(
@@ -319,25 +373,55 @@ export class HoverDetector {
 				e.clientX <= pr.right;
 			const adjacent =
 				pr.top < EDGE_THRESHOLD * 2;
+			const sameDoc =
+				header.ownerDocument === evtDoc;
 
-			// Standard: cursor near header top
 			const nearHeader =
+				sameDoc &&
 				inX &&
 				e.clientY >= pr.top &&
 				e.clientY <= pr.top + EDGE_THRESHOLD;
 
-			// Linked: top bar shown + adjacent
+			// Linked: top bar shown + adjacent + same window
 			const linkedReveal =
+				sameDoc &&
 				topShown &&
 				adjacent &&
 				inX &&
 				e.clientY <=
 					pr.top + EDGE_THRESHOLD;
 
-			if (nearHeader || linkedReveal) {
+			// Reverse group link: cursor is near the tab
+			// header of the same group
+			const group = header.closest(
+				'.workspace-tabs'
+			);
+			let cursorNearGroupTab = false;
+			if (group && sameDoc) {
+				const tab = group.querySelector(
+					TAB_HEADER_SELECTOR
+				) as HTMLElement | null;
+				if (tab) {
+					const tr = tab.getBoundingClientRect();
+					if (
+						e.clientX >= tr.left &&
+						e.clientX <= tr.right &&
+						e.clientY >= tr.top &&
+						e.clientY <= tr.bottom + EDGE_THRESHOLD
+					) {
+						cursorNearGroupTab = true;
+					}
+				}
+			}
+
+			if (
+				nearHeader ||
+				linkedReveal ||
+				cursorNearGroupTab
+			) {
 				header.classList.add('efs-revealed');
 				nowRevealed.add(header);
-				if (adjacent && this.topBarEnabled) {
+				if (adjacent && sameDoc && this.topBarEnabled) {
 					this.revealSide(Side.top);
 				}
 			}
@@ -358,12 +442,15 @@ export class HoverDetector {
 	 * view-header is already revealed.
 	 */
 	private checkTabHeaderReveal(e: MouseEvent): void {
-		const tabs = document.querySelectorAll(
-			TAB_HEADER_SELECTOR
-		) as NodeListOf<HTMLElement>;
+		const tabs =
+			this.queryAllDocs<HTMLElement>(
+				TAB_HEADER_SELECTOR
+			);
 
 		const nowRevealed = new Set<HTMLElement>();
 		const topShown = this.shownSides.has(Side.top);
+		const evtDoc =
+			(e.target as Node)?.ownerDocument ?? document;
 
 		tabs.forEach(tab => {
 			const tr = tab.getBoundingClientRect();
@@ -372,18 +459,22 @@ export class HoverDetector {
 				e.clientX <= tr.right;
 			const adjacent =
 				tr.top < EDGE_THRESHOLD * 2;
+			const sameDoc =
+				tab.ownerDocument === evtDoc;
 
-			// Near tab header rect
 			const nearTab =
+				sameDoc &&
 				inX &&
 				e.clientY >= tr.top &&
 				e.clientY <= tr.bottom + EDGE_THRESHOLD;
 
-			// Linked: top bar shown + adjacent
+			// Link only within same window
 			const linkedTop =
-				topShown && adjacent && inX;
+				sameDoc &&
+				topShown &&
+				adjacent &&
+				inX;
 
-			// Group link: view-header in same group
 			const group = tab.closest(
 				'.workspace-tabs'
 			);
@@ -398,9 +489,26 @@ export class HoverDetector {
 			if (nearTab || linkedTop || groupLinked) {
 				tab.classList.add('efs-revealed');
 				nowRevealed.add(tab);
-				if (adjacent) {
+				if (adjacent && sameDoc) {
 					this.revealSide(Side.top);
 				}
+			}
+		});
+
+		// Reveal titlebars only in the event's window
+		const titlebars =
+			this.queryAllDocs<HTMLElement>('.titlebar');
+		titlebars.forEach(tb => {
+			if (tb.ownerDocument !== evtDoc) return;
+			const anyLocal =
+				[...nowRevealed].some(
+					h => h.ownerDocument === evtDoc
+				) || topShown;
+			if (anyLocal) {
+				tb.classList.add('efs-revealed');
+				nowRevealed.add(tb);
+			} else {
+				tb.classList.remove('efs-revealed');
 			}
 		});
 
@@ -410,6 +518,14 @@ export class HoverDetector {
 			}
 		});
 		this.revealedTabHeaders = nowRevealed;
+
+		// Sentinel: disable when top elements are visible
+		if (this.sentinelTop) {
+			this.sentinelTop.style.pointerEvents =
+				nowRevealed.size > 0 || topShown
+					? 'none'
+					: 'all';
+		}
 	}
 
 	/** Clears all revealed view-headers. */

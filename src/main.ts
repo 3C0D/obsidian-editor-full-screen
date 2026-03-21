@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, WorkspaceWindow } from 'obsidian';
 import { DEFAULT_SETTINGS } from './constants.ts';
 import type { EFSSettings } from './types.ts';
 import { Side } from './types.ts';
@@ -24,6 +24,9 @@ export default class EditorFullScreen extends Plugin {
 	// Sidebar state saved before activation
 	private leftWasCollapsed = false;
 	private rightWasCollapsed = false;
+
+	// Track popout window documents for multi-window support
+	private popoutDocs = new Set<Document>();
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -143,6 +146,42 @@ export default class EditorFullScreen extends Plugin {
 			this.settings.hideTopBar;
 
 		this.hoverDetector.start();
+
+		// Apply body classes to all windows
+		this.applyBodyClasses();
+
+		// Set up existing popout windows
+		this.app.workspace.iterateAllLeaves(leaf => {
+			const doc =
+				leaf.view?.containerEl?.ownerDocument;
+			if (doc && doc !== document) {
+				this.registerPopout(doc);
+			}
+		});
+
+		// Track future popout windows
+		this.registerEvent(
+			this.app.workspace.on(
+				'window-open',
+				(win: WorkspaceWindow) => {
+					const w = win.getContainer();
+					const doc = (w as unknown as Window)
+						?.document;
+					if (doc) this.registerPopout(doc);
+				}
+			)
+		);
+		this.registerEvent(
+			this.app.workspace.on(
+				'window-close',
+				(win: WorkspaceWindow) => {
+					const w = win.getContainer();
+					const doc = (w as unknown as Window)
+						?.document;
+					if (doc) this.unregisterPopout(doc);
+				}
+			)
+		);
 	}
 
 	/**
@@ -171,11 +210,14 @@ export default class EditorFullScreen extends Plugin {
 		}
 
 		this.elementManager.showAllElements();
-		document.body.classList.remove(
-			'efs-active',
-			'efs-hide-topbar',
-			'efs-hide-viewheader'
-		);
+
+		// Remove body classes from all windows
+		this.removeBodyClasses(document);
+		this.popoutDocs.forEach(doc => {
+			this.removeBodyClasses(doc);
+			this.hoverDetector.removeDocument(doc);
+		});
+		this.popoutDocs.clear();
 	}
 
 	/**
@@ -219,8 +261,7 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	private buildManagedKeys(): string[] {
 		const keys: string[] = [];
-		if (this.settings.hideTopBar) keys.push('titleBar');
-		// tabHeader: managed via CSS body class, not elementManager
+		// topBar (tabHeader + titleBar): CSS body class
 		if (this.settings.hideRibbon) {
 			keys.push('ribbon');
 			if (this.settings.hideTopBar) keys.push('leftToggleBtn');
@@ -229,5 +270,42 @@ export default class EditorFullScreen extends Plugin {
 		if (this.settings.hideStatusBar) keys.push('statusBar');
 		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager
 		return keys;
+	}
+
+	/** Registers a popout window for full-screen management. */
+	private registerPopout(doc: Document): void {
+		if (this.popoutDocs.has(doc)) return;
+		this.popoutDocs.add(doc);
+		this.applyBodyClasses(doc);
+		this.hoverDetector.addDocument(doc);
+	}
+
+	/** Unregisters a popout window. */
+	private unregisterPopout(doc: Document): void {
+		this.removeBodyClasses(doc);
+		this.hoverDetector.removeDocument(doc);
+		this.popoutDocs.delete(doc);
+	}
+
+	/** Applies relevant CSS body classes to a document. */
+	private applyBodyClasses(
+		doc: Document = document
+	): void {
+		doc.body.classList.add('efs-active');
+		if (this.settings.hideTopBar)
+			doc.body.classList.add('efs-hide-topbar');
+		if (this.settings.hideViewHeader)
+			doc.body.classList.add(
+				'efs-hide-viewheader'
+			);
+	}
+
+	/** Removes CSS body classes from a document. */
+	private removeBodyClasses(doc: Document): void {
+		doc.body.classList.remove(
+			'efs-active',
+			'efs-hide-topbar',
+			'efs-hide-viewheader'
+		);
 	}
 }

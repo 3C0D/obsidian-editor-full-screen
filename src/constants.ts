@@ -49,14 +49,8 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		side: Side.left,
 		exitPadding: 10,
 	},
-	// tabHeader removed — managed via CSS body class
-	// (efs-hide-topbar) to support multiple split groups.
-	titleBar: {
-		// OS-window buttons
-		selector: '.titlebar',
-		side: Side.top,
-		exitPadding: 10,
-	},
+	// tabHeader + titleBar removed — managed via CSS body class
+	// (efs-hide-topbar) to support multiple splits + popouts.
 	// viewHeader removed — managed via CSS body class
 	// (efs-hide-viewheader) to support multiple splits.
 	statusBar: {

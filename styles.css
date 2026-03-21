@@ -20,21 +20,23 @@
 		height 0.25s ease;
 }
 
-/* Hide ALL tab header containers across all split groups.
-   Uses body class so every group is covered automatically. */
+/* Hide tab headers + titlebar when top bar is hidden.
+   Uses body class to cover all windows + split groups. */
 .efs-hide-topbar
 	.mod-root
 	.workspace-tabs
-	.workspace-tab-header-container {
+	.workspace-tab-header-container,
+.efs-hide-topbar .titlebar {
 	opacity: 0;
 	pointer-events: none;
 }
 
-/* Reveal individual tab header on cursor proximity */
+/* Reveal individual tab header / titlebar on hover */
 .efs-hide-topbar
 	.mod-root
 	.workspace-tabs
-	.workspace-tab-header-container.efs-revealed {
+	.workspace-tab-header-container.efs-revealed,
+.efs-hide-topbar .titlebar.efs-revealed {
 	opacity: 1;
 	pointer-events: auto;
 }
