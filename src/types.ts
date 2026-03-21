@@ -30,7 +30,7 @@ export interface ElementConfig {
 	selector: string;
 	side: Side;
 	// Extra px beyond element rect before triggering hide (prevents jitter).
-	exitPadding: number;
+	exitPadding?: number;
 }
 
 export interface EFSSettings {

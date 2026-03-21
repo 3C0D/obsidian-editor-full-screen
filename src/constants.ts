@@ -67,7 +67,6 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 		// selector is kept for reference only — not used for hide/show.
 		selector: '.workspace-sidedock.mod-left',
 		side: Side.left,
-		exitPadding: 10,
 	},
 	leftToggleBtn: {
 		// Sidebar toggle button, we need it when ribbon is collapsed
@@ -78,7 +77,6 @@ export const ELEMENT_CONFIGS: Record<string, ElementConfig> = {
 	rightSidebar: {
 		selector: '.mod-right-split',
 		side: Side.right,
-		exitPadding: 10,
 	},
 };
 

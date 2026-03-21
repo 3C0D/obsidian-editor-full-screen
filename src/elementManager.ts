@@ -124,7 +124,7 @@ export class ElementManager {
 
 	/** Returns max exit padding for elements on side. */
 	getExitPadding(side: Side): number {
-		const pads = this.getKeysBySide(side).map(k => ELEMENT_CONFIGS[k].exitPadding);
+		const pads = this.getKeysBySide(side).map(k => ELEMENT_CONFIGS[k].exitPadding ?? 0);
 		return pads.length ? Math.max(...pads) : 10;
 	}
 
