@@ -270,8 +270,8 @@ export class HoverDetector {
 	 * Updates the left toggle button visibility based on currently shown sides.
 	 * Shows the button if left or top side is revealed, hides it otherwise.
 	 */
-	private updateToggleBtn(): void {
-		const btns = document.querySelectorAll(LEFT_TOGGLE_BTN_SELECTOR);
+	private updateToggleBtn(doc: Document = document): void {
+		const btns = doc.querySelectorAll(LEFT_TOGGLE_BTN_SELECTOR);
 		if (this.shownSides.has(Side.left) || this.shownSides.has(Side.top)) {
 			btns.forEach(b => b.classList.add('efs-revealed'));
 		} else {
@@ -284,21 +284,21 @@ export class HoverDetector {
 	 * Avoids redundant operations if the side is already shown.
 	 * @param side - The side to reveal (left, top, bottom, or right).
 	 */
-	private revealSide(side: Side): void {
+	private revealSide(side: Side, doc: Document = document): void {
 		if (!this.shownSides.has(side)) {
 			this.shownSides.add(side);
 			
 			switch(side) {
 				case Side.left:
-					document.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
-					this.updateToggleBtn();
+					doc.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					this.updateToggleBtn(doc);
 					break;
 				case Side.top:
 					if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'none';
-					this.updateToggleBtn();
+					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					document.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
 					break;
 			}
 			
@@ -306,21 +306,21 @@ export class HoverDetector {
 		}
 	}
 
-	private hideSide(side: Side): void {
+	private hideSide(side: Side, doc: Document = document): void {
 		if (this.shownSides.has(side)) {
 			this.shownSides.delete(side);
 			
 			switch(side) {
 				case Side.left:
-					document.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
-					this.updateToggleBtn();
+					doc.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					this.updateToggleBtn(doc);
 					break;
 				case Side.top:
 					if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'all';
-					this.updateToggleBtn();
+					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					document.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
 					break;
 			}
 			
@@ -462,7 +462,7 @@ export class HoverDetector {
 				header.classList.add('efs-revealed');
 				nowRevealed.add(header);
 				if (adjacent && sameDoc && this.topBarEnabled) {
-					this.revealSide(Side.top);
+					this.revealSide(Side.top, evtDoc);
 				}
 			}
 		});
@@ -530,7 +530,7 @@ export class HoverDetector {
 				tab.classList.add('efs-revealed');
 				nowRevealed.add(tab);
 				if (adjacent && sameDoc) {
-					this.revealSide(Side.top);
+					this.revealSide(Side.top, evtDoc);
 				}
 			}
 		});
