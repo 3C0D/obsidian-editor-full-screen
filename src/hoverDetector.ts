@@ -408,8 +408,11 @@ export class HoverDetector {
 			const inX =
 				e.clientX >= pr.left &&
 				e.clientX <= pr.right;
-			const adjacent =
-				pr.top < EDGE_THRESHOLD * 2;
+			const tabGroup = header.closest('.workspace-tabs');
+			const tabEl = tabGroup?.querySelector(TAB_HEADER_SELECTOR) as HTMLElement | null;
+			const adjacent = tabEl
+				? tabEl.getBoundingClientRect().top < EDGE_THRESHOLD
+				: pr.top < EDGE_THRESHOLD * 2;
 			const sameDoc =
 				header.ownerDocument === evtDoc;
 
@@ -537,10 +540,11 @@ export class HoverDetector {
 			this.queryAllDocs<HTMLElement>('.titlebar');
 		titlebars.forEach(tb => {
 			if (tb.ownerDocument !== evtDoc) return;
-			const anyLocal =
-				[...nowRevealed].some(
-					h => h.ownerDocument === evtDoc
-				) || topShown;
+			const anyLocal = [...nowRevealed].some(h => {
+				if (h.ownerDocument !== evtDoc) return false;
+				const r = h.getBoundingClientRect();
+				return r.top < EDGE_THRESHOLD;
+			});
 			if (anyLocal) {
 				tb.classList.add('efs-revealed');
 				nowRevealed.add(tb);
