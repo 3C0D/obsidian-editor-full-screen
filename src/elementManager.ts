@@ -122,7 +122,7 @@ export class ElementManager {
 		return new DOMRect(left, top, right - left, bottom - top);
 	}
 
-	/** Returns max exit padding for elements on side. */
+/** Returns the maximum exit padding among all elements on the given side. */
 	getExitPadding(side: Side): number {
 		const pads = this.getKeysBySide(side).map(k => ELEMENT_CONFIGS[k].exitPadding ?? 0);
 		return pads.length ? Math.max(...pads) : 10;
@@ -133,10 +133,10 @@ export class ElementManager {
 		return this.preHideRects.get(key) ?? null;
 	}
 
-	/**
-	 * Refreshes an element by updating its pre-hide rect and re-hiding it.
-	 * Used when the DOM element changes (e.g., on leaf change).
-	 */
+/**
+ * Refreshes the pre-hide snapshot and re-hides an element.
+ * Used when the DOM node changes (e.g., active leaf change creates a new view-header).
+ */
 	refreshElement(key: string): void {
 		this.preHideRects.delete(key);
 		const el = this.getEl(key);

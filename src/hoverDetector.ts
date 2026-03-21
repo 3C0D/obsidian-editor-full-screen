@@ -174,10 +174,10 @@ export class HoverDetector {
 
 	}
 
-	/**
-	 * Updates the visibility of the toggle button based on shown sides.
-	 * Shows the button if either left or top side is shown, otherwise hides it.
-	 */
+/**
+ * Updates the left toggle button visibility based on currently shown sides.
+ * Shows the button if left or top side is revealed, hides it otherwise.
+ */
 	private updateToggleBtn(): void {
 		if (!this.manager.getManagedKeys().includes('leftToggleBtn')) return;
 		if (this.shownSides.has(Side.left) || this.shownSides.has(Side.top)) {
@@ -264,19 +264,19 @@ export class HoverDetector {
 		return el ? el.getBoundingClientRect().right : null;
 	}
 
-	/**
-	 * Gets the left edge of the right sidebar.
-	 * @returns The left coordinate of the right sidebar, or window width if not found.
-	 */
+/**
+ * Returns the left edge of the right sidebar panel.
+ * Used to determine when the cursor has moved far enough left to close the sidebar.
+ */
 	private getRightSidebarLeft(): number {
 		const el = document.querySelector('.mod-right-split') as HTMLElement | null;
 		return el ? el.getBoundingClientRect().left : window.innerWidth;
 	}
 
-	/**
-	 * Gets the right edge of the left sidebar.
-	 * @returns The right coordinate of the left sidebar, or 0 if not found.
-	 */
+/**
+ * Returns the right edge of the left sidebar panel.
+ * Used to determine when the cursor has moved far enough right to close the sidebar.
+ */
 	private getLeftSidebarRight(): number {
 		const el = document.querySelector('.mod-left-split') as HTMLElement | null;
 		return el ? el.getBoundingClientRect().right : 0;
