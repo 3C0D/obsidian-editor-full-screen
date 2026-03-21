@@ -25,13 +25,7 @@ export enum Side {
 	none,
 }
 
-/** Configuration for a hideable UI element. */
-export interface ElementConfig {
-	selector: string;
-	side: Side;
-	// Extra px beyond element rect before triggering hide (prevents jitter).
-	exitPadding?: number;
-}
+
 
 export interface EFSSettings {
 	modeAtStart: boolean;

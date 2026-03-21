@@ -78,22 +78,39 @@
 	overflow: visible;
 }
 
-/* When ribbon is hidden, keep only the sidebar toggle button visible.
-   The button has its own hide-el class (leftToggleBtn in activeKeys).
-   We read that class to decide whether to show or hide the button. */
-.efs-active .workspace-ribbon.side-dock-ribbon.mod-left.hide-el {
+/* Ribbon hiding logic */
+.efs-hide-ribbon .workspace-ribbon.mod-left:not(.efs-revealed) {
 	opacity: 1 !important;
 	visibility: hidden;
 }
 
-.efs-active
-	.workspace-ribbon.side-dock-ribbon.mod-left.hide-el
-	.sidebar-toggle-button.hide-el {
+/* Ensure ribbon toggle button visibility logic */
+/* If ribbon is hidden, but toggle button should be visible (e.g. topbar not hidden) */
+.efs-hide-ribbon:not(.efs-hide-lefttogglebtn) .workspace-ribbon.mod-left:not(.efs-revealed) .sidebar-toggle-button.mod-left {
+	visibility: visible;
+}
+
+.efs-hide-ribbon.efs-hide-lefttogglebtn .workspace-ribbon.mod-left:not(.efs-revealed) .sidebar-toggle-button.mod-left:not(.efs-revealed) {
 	visibility: hidden;
 }
 
-.efs-active
-	.workspace-ribbon.side-dock-ribbon.mod-left.hide-el
-	.sidebar-toggle-button:not(.hide-el) {
+.efs-hide-ribbon.efs-hide-lefttogglebtn .workspace-ribbon.mod-left:not(.efs-revealed) .sidebar-toggle-button.mod-left.efs-revealed {
 	visibility: visible;
+}
+
+/* Ribbon revealed state */
+.efs-hide-ribbon .workspace-ribbon.mod-left.efs-revealed {
+	visibility: visible;
+	opacity: 1;
+}
+
+/* Status bar hiding logic */
+.efs-hide-statusbar .status-bar:not(.efs-revealed) {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.efs-hide-statusbar .status-bar.efs-revealed {
+	opacity: 1;
+	pointer-events: auto;
 }

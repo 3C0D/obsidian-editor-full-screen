@@ -4,7 +4,6 @@ import type { EFSSettings } from './types.ts';
 import { Side } from './types.ts';
 import { EFSSettingTab } from './settings.ts';
 import { EFSModal } from './modal.ts';
-import { ElementManager } from './elementManager.ts';
 import { HoverDetector } from './hoverDetector.ts';
 import { collapseSidebar, expandSidebar, updateSidebarVisibility } from './sidebarUtils.ts';
 import { registerMenus } from './menuManager.ts';
@@ -18,7 +17,6 @@ export default class EditorFullScreen extends Plugin {
 	isFullScreen = false;
 	settings: EFSSettings;
 
-	private elementManager: ElementManager;
 	private hoverDetector: HoverDetector;
 
 	// Sidebar state saved before activation
@@ -31,8 +29,7 @@ export default class EditorFullScreen extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		this.elementManager = new ElementManager();
-		this.hoverDetector = new HoverDetector(this.elementManager);
+		this.hoverDetector = new HoverDetector();
 
 		this.addSettingTab(new EFSSettingTab(this.app, this));
 
@@ -92,7 +89,6 @@ export default class EditorFullScreen extends Plugin {
 	 */
 	activateMode(): void {
 		this.isFullScreen = true;
-		this.elementManager.setManagedKeys(this.buildManagedKeys());
 
 		// Save sidebar state before collapsing
 		const leftDock = this.app.workspace.leftSplit as
@@ -128,22 +124,23 @@ export default class EditorFullScreen extends Plugin {
 			}
 		};
 
-		this.elementManager.hideManaged();
+		// CSS-based toggle sets
 		document.body.classList.add('efs-active');
+		
+		this.applyBodyClasses();
 
-		// Top bar: CSS-based multi-split hiding
-		if (this.settings.hideTopBar) {
-			document.body.classList.add('efs-hide-topbar');
-		}
-
-		// View-header: CSS-based multi-split hiding
-		if (this.settings.hideViewHeader) {
-			document.body.classList.add('efs-hide-viewheader');
-		}
 		this.hoverDetector.viewHeaderEnabled =
 			this.settings.hideViewHeader;
 		this.hoverDetector.topBarEnabled =
 			this.settings.hideTopBar;
+		this.hoverDetector.ribbonEnabled =
+			this.settings.hideRibbon;
+		this.hoverDetector.statusBarEnabled =
+			this.settings.hideStatusBar;
+		this.hoverDetector.leftSidebarEnabled =
+			this.settings.hideLeftSidebar;
+		this.hoverDetector.rightSidebarEnabled =
+			this.settings.hideRightSidebar;
 
 		this.hoverDetector.start();
 
@@ -209,8 +206,6 @@ export default class EditorFullScreen extends Plugin {
 			expandSidebar(this.app, 'right');
 		}
 
-		this.elementManager.showAllElements();
-
 		// Remove body classes from all windows
 		this.removeBodyClasses(document);
 		this.popoutDocs.forEach(doc => {
@@ -225,52 +220,27 @@ export default class EditorFullScreen extends Plugin {
 	 * Shows all elements first so removed ones become visible again.
 	 */
 	reapplyMode(): void {
-		this.elementManager.showAllElements();
-		this.elementManager.setManagedKeys(this.buildManagedKeys());
-		this.elementManager.hideManaged();
-
-		// Toggle top bar CSS class based on setting
-		if (this.settings.hideTopBar) {
-			document.body.classList.add('efs-hide-topbar');
-		} else {
-			document.body.classList.remove(
-				'efs-hide-topbar'
-			);
-		}
-
-		// Toggle view-header CSS class based on setting
-		if (this.settings.hideViewHeader) {
-			document.body.classList.add('efs-hide-viewheader');
-		} else {
-			document.body.classList.remove(
-				'efs-hide-viewheader'
-			);
-		}
+		// Update flags and body classes
+		this.applyBodyClasses();
+		
 		this.hoverDetector.viewHeaderEnabled =
 			this.settings.hideViewHeader;
 		this.hoverDetector.topBarEnabled =
 			this.settings.hideTopBar;
+		this.hoverDetector.ribbonEnabled =
+			this.settings.hideRibbon;
+		this.hoverDetector.statusBarEnabled =
+			this.settings.hideStatusBar;
+		this.hoverDetector.leftSidebarEnabled =
+			this.settings.hideLeftSidebar;
+		this.hoverDetector.rightSidebarEnabled =
+			this.settings.hideRightSidebar;
 
 		// Update sidebar visibility based on current settings
 		updateSidebarVisibility(this);
 	}
 
-	/**
-	 * Builds the list of element keys to manage based on current settings.
-	 * @returns Array of element keys to hide in full screen mode.
-	 */
-	private buildManagedKeys(): string[] {
-		const keys: string[] = [];
-		// topBar (tabHeader + titleBar): CSS body class
-		if (this.settings.hideRibbon) {
-			keys.push('ribbon');
-			if (this.settings.hideTopBar) keys.push('leftToggleBtn');
-		}
-		// viewHeader: managed via CSS body class, not elementManager
-		if (this.settings.hideStatusBar) keys.push('statusBar');
-		// leftSidebar is handled via API in activateMode/deactivateMode, not via elementManager
-		return keys;
-	}
+
 
 	/** Registers a popout window for full-screen management. */
 	private registerPopout(doc: Document): void {
@@ -292,20 +262,33 @@ export default class EditorFullScreen extends Plugin {
 		doc: Document = document
 	): void {
 		doc.body.classList.add('efs-active');
+		
+		// Reset all managed classes first to handle reapplyMode state changes
+		this.removeBodyClasses(doc, true);
+		
 		if (this.settings.hideTopBar)
 			doc.body.classList.add('efs-hide-topbar');
 		if (this.settings.hideViewHeader)
-			doc.body.classList.add(
-				'efs-hide-viewheader'
-			);
+			doc.body.classList.add('efs-hide-viewheader');
+		if (this.settings.hideRibbon) {
+			doc.body.classList.add('efs-hide-ribbon');
+			if (this.settings.hideTopBar) {
+				doc.body.classList.add('efs-hide-lefttogglebtn');
+			}
+		}
+		if (this.settings.hideStatusBar)
+			doc.body.classList.add('efs-hide-statusbar');
 	}
 
 	/** Removes CSS body classes from a document. */
-	private removeBodyClasses(doc: Document): void {
+	private removeBodyClasses(doc: Document, keepActive: boolean = false): void {
+		if (!keepActive) doc.body.classList.remove('efs-active');
 		doc.body.classList.remove(
-			'efs-active',
 			'efs-hide-topbar',
-			'efs-hide-viewheader'
+			'efs-hide-viewheader',
+			'efs-hide-ribbon',
+			'efs-hide-lefttogglebtn',
+			'efs-hide-statusbar'
 		);
 	}
 }

@@ -1,8 +1,10 @@
 import { Side } from './types.ts';
-import { ElementManager } from './elementManager.ts';
 import {
 	VIEW_HEADER_SELECTOR,
 	TAB_HEADER_SELECTOR,
+	RIBBON_SELECTOR,
+	STATUS_BAR_SELECTOR,
+	LEFT_TOGGLE_BTN_SELECTOR,
 } from './constants.ts';
 
 // px from viewport edge that triggers element reveal
@@ -41,6 +43,11 @@ export class HoverDetector {
 	// Whether top bar hiding is active (for zone linking)
 	topBarEnabled = false;
 
+	ribbonEnabled = false;
+	statusBarEnabled = false;
+	leftSidebarEnabled = false;
+	rightSidebarEnabled = false;
+
 	// Currently revealed view-headers (managed via CSS class)
 	private revealedHeaders = new Set<HTMLElement>();
 
@@ -53,7 +60,7 @@ export class HoverDetector {
 	// Tracked documents (main + popout windows)
 	private trackedDocs = new Set<Document>();
 
-	constructor(private manager: ElementManager) {}
+	constructor() {}
 
 	/**
 	 * Starts hover detection by adding mousemove listener and creating sentinels.
@@ -197,20 +204,26 @@ export class HoverDetector {
 	 */
 	private checkReveal(e: MouseEvent): void {
 		// Use actual ribbon width if available, capped to avoid accidental triggers
-		const ribbonEl = document.querySelector(
-			'.workspace-ribbon.side-dock-ribbon.mod-left'
-		) as HTMLElement | null;
-		const triggerWidth = ribbonEl
-			? Math.min(ribbonEl.getBoundingClientRect().width, LEFT_TRIGGER_MAX)
-			: LEFT_TRIGGER_MAX;
-		if (e.clientX <= triggerWidth) this.revealSide(Side.left);
+		if (this.ribbonEnabled || this.leftSidebarEnabled) {
+			const ribbonEl = document.querySelector(
+				RIBBON_SELECTOR
+			) as HTMLElement | null;
+			const triggerWidth = ribbonEl
+				? Math.min(ribbonEl.getBoundingClientRect().width, LEFT_TRIGGER_MAX)
+				: LEFT_TRIGGER_MAX;
+			if (e.clientX <= triggerWidth) this.revealSide(Side.left);
+		}
 
 		// Top: generous threshold handles fast upward swipes
-		if (e.clientY <= EDGE_THRESHOLD) this.revealSide(Side.top);
+		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) this.revealSide(Side.top);
 
 		// Bottom: pull trigger zone up to stay above Windows taskbar
-		if (e.clientY >= window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN)
+		if (
+			e.clientY >= window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN &&
+			this.statusBarEnabled
+		) {
 			this.revealSide(Side.bottom);
+		}
 
 		// Right sidebar: Shift + near right edge → open once, then wait for editor return
 		if (!this.rightSidebarOpen && e.shiftKey) {
@@ -231,14 +244,7 @@ export class HoverDetector {
 	private checkHide(e: MouseEvent): void {
 		this.shownSides.forEach(side => {
 			if (this.isOutside(e, side)) {
-				this.manager.hideBySide(side);
-				this.shownSides.delete(side);
-				// Re-enable sentinel when top is hidden
-				if (side === Side.top && this.sentinelTop)
-					this.sentinelTop.style.pointerEvents = 'all';
-				// Update toggle button
-				this.updateToggleBtn();
-				this.onSideHide?.(side);
+				this.hideSide(side);
 			}
 		});
 
@@ -255,26 +261,21 @@ export class HoverDetector {
 		if (this.shownSides.has(Side.left)) {
 			const sidebarRight = this.getLeftSidebarRight();
 			if (e.clientX > sidebarRight + EDGE_THRESHOLD) {
-				this.manager.hideBySide(Side.left);
-				this.shownSides.delete(Side.left);
-				this.updateToggleBtn();
-				this.onSideHide?.(Side.left);
+				this.hideSide(Side.left);
 			}
 		}
-
-
 	}
 
-/**
- * Updates the left toggle button visibility based on currently shown sides.
- * Shows the button if left or top side is revealed, hides it otherwise.
- */
+	/**
+	 * Updates the left toggle button visibility based on currently shown sides.
+	 * Shows the button if left or top side is revealed, hides it otherwise.
+	 */
 	private updateToggleBtn(): void {
-		if (!this.manager.getManagedKeys().includes('leftToggleBtn')) return;
+		const btns = document.querySelectorAll(LEFT_TOGGLE_BTN_SELECTOR);
 		if (this.shownSides.has(Side.left) || this.shownSides.has(Side.top)) {
-			this.manager.show('leftToggleBtn');
+			btns.forEach(b => b.classList.add('efs-revealed'));
 		} else {
-			this.manager.hide('leftToggleBtn');
+			btns.forEach(b => b.classList.remove('efs-revealed'));
 		}
 	}
 
@@ -285,12 +286,45 @@ export class HoverDetector {
 	 */
 	private revealSide(side: Side): void {
 		if (!this.shownSides.has(side)) {
-			this.manager.showBySide(side);
 			this.shownSides.add(side);
-			if (side === Side.top && this.sentinelTop)
-				this.sentinelTop.style.pointerEvents = 'none';
-			if (side === Side.left) this.updateToggleBtn();
+			
+			switch(side) {
+				case Side.left:
+					document.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					this.updateToggleBtn();
+					break;
+				case Side.top:
+					if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'none';
+					this.updateToggleBtn();
+					break;
+				case Side.bottom:
+					document.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					break;
+			}
+			
 			this.onSideReveal?.(side);
+		}
+	}
+
+	private hideSide(side: Side): void {
+		if (this.shownSides.has(side)) {
+			this.shownSides.delete(side);
+			
+			switch(side) {
+				case Side.left:
+					document.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					this.updateToggleBtn();
+					break;
+				case Side.top:
+					if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'all';
+					this.updateToggleBtn();
+					break;
+				case Side.bottom:
+					document.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					break;
+			}
+			
+			this.onSideHide?.(side);
 		}
 	}
 
@@ -301,18 +335,16 @@ export class HoverDetector {
 	 * @returns True if the cursor is outside the side's bounds (considering padding), false otherwise.
 	 */
 	private isOutside(e: MouseEvent, side: Side): boolean {
-		const rect = this.manager.getCombinedRect(side);
-		if (!rect) return false;
-		const pad = this.manager.getExitPadding(side);
-
 		switch (side) {
 			case Side.left:
-				// Handled by position check in checkHide
-				return false;
 			case Side.right:
-				// Handled by position check in checkHide
 				return false;
 			case Side.top:
+				let topBottom = 0;
+				const btn = document.querySelector(LEFT_TOGGLE_BTN_SELECTOR) as HTMLElement | null;
+				if (btn) topBottom = btn.getBoundingClientRect().bottom;
+				const padTop = 10;
+				
 				// Zone linking: if an adjacent header is
 				// revealed, extend the stay-open zone to
 				// include the header area.
@@ -328,7 +360,7 @@ export class HoverDetector {
 						// is above header bottom + pad
 						const hb = h.getBoundingClientRect();
 						if (
-							e.clientY <= hb.bottom + pad &&
+							e.clientY <= hb.bottom + padTop &&
 							e.clientX >= pt.left &&
 							e.clientX <= pt.right
 						) {
@@ -336,9 +368,14 @@ export class HoverDetector {
 						}
 					}
 				}
-				return e.clientY > rect.bottom + pad;
+				return e.clientY > Math.max(topBottom, 0) + padTop;
+
 			case Side.bottom:
-				return e.clientY < rect.top - pad;
+				let bottomTop = window.innerHeight;
+				const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
+				if (sb && this.statusBarEnabled) bottomTop = sb.getBoundingClientRect().top;
+				const padBottom = 30;
+				return e.clientY < bottomTop - padBottom;
 			default:
 				return false;
 		}
