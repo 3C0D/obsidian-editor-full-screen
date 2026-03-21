@@ -37,6 +37,10 @@ export class HoverDetector {
 	// (WorkspaceSidedock.expand/collapse), not by elementManager.
 	private rightSidebarOpen = false;
 
+	// Flag to prevent race condition: when sidebar opens, its left edge animates
+	// left, which can temporarily trigger the closing condition in checkHide.
+	private rightSidebarJustOpened = false;
+
 	// Whether view-header hover detection is active
 	viewHeaderEnabled = false;
 
@@ -233,6 +237,8 @@ export class HoverDetector {
 			const editorRight = this.getEditorRight();
 			if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD) {
 				this.rightSidebarOpen = true;
+				this.rightSidebarJustOpened = true;
+				setTimeout(() => { this.rightSidebarJustOpened = false; }, 500);
 				this.onSideReveal?.(Side.right);
 			}
 		}
@@ -252,7 +258,7 @@ export class HoverDetector {
 		});
 
 		// Hide right sidebar when cursor moves away from it
-		if (this.rightSidebarOpen) {
+		if (this.rightSidebarOpen && !this.rightSidebarJustOpened) {
 			const sidebarLeft = this.getRightSidebarLeft();
 			if (e.clientX < sidebarLeft - EDGE_THRESHOLD) {
 				this.rightSidebarOpen = false;
