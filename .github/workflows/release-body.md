@@ -1,1 +1,1 @@
-feature: multi windows, split. All bugs fixed. new unified approach based on css and notprehide rects anymore
+Fixed right sidebar flickering on Shift+hover open
