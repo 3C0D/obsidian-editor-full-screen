@@ -20,25 +20,36 @@
 		height 0.25s ease;
 }
 
-/* Hide tab headers + titlebar when top bar is hidden.
+/* Hide tab headers when top bar is hidden.
    Uses body class to cover all windows + split groups. */
 .efs-hide-topbar
 	.mod-root
 	.workspace-tabs
-	.workspace-tab-header-container,
-.efs-hide-topbar .titlebar {
+	.workspace-tab-header-container {
 	opacity: 0;
 	pointer-events: none;
 }
 
-/* Reveal individual tab header / titlebar on hover */
+/* Hide titlebar when top bar is hidden, except when revealed */
+.efs-hide-topbar .titlebar:not(.efs-revealed) {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Reveal individual tab header on hover */
 .efs-hide-topbar
 	.mod-root
 	.workspace-tabs
-	.workspace-tab-header-container.efs-revealed,
-.efs-hide-topbar .titlebar.efs-revealed {
+	.workspace-tab-header-container.efs-revealed {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+/* Reveal titlebar and restore native pointer-events */
+.efs-hide-topbar .titlebar.efs-revealed {
+	opacity: 1;
+	/* Do NOT set pointer-events: auto, as Obsidian's titlebar uses pointer-events: none 
+	   with nested pointer-events: auto to let clicks pass through to tabs. */
 }
 
 /* Hide ALL view-headers across all splits when enabled.
