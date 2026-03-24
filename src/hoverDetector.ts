@@ -16,6 +16,9 @@ const LEFT_TRIGGER_MAX = 40;
 // Extra bottom offset: avoids triggering status bar when Windows taskbar captures cursor
 const BOTTOM_EXTRA_MARGIN = 40;
 
+// Exit margin below the last revealed top element before hiding
+const EDGE_HIDE_PAD = 25;
+
 /**
  * Detects cursor proximity to viewport edges and manages revealing/hiding of UI elements accordingly.
  *
@@ -157,7 +160,9 @@ export class HoverDetector {
 			pointerEvents: 'all',
 			opacity: '0',
 		});
-		this.sentinelTop.addEventListener('mouseenter', () => this.revealSide(Side.top));
+		this.sentinelTop.addEventListener('mouseenter', () => {
+			if (this.topBarEnabled) this.revealSide(Side.top);
+		});
 		document.body.appendChild(this.sentinelTop);
 	}
 
@@ -190,7 +195,7 @@ export class HoverDetector {
 	 * when dragging near the top edge.
 	 */
 	private handleDragOver = (e: DragEvent): void => {
-		if (e.clientY <= EDGE_THRESHOLD) {
+		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) {
 			this.revealSide(Side.top);
 		}
 		if (this.topBarEnabled) {
@@ -352,32 +357,14 @@ export class HoverDetector {
 				let topBottom = 0;
 				const btn = document.querySelector(LEFT_TOGGLE_BTN_SELECTOR) as HTMLElement | null;
 				if (btn) topBottom = btn.getBoundingClientRect().bottom;
-				const padTop = 10;
-				
-				// Zone linking: if an adjacent header is
-				// revealed, extend the stay-open zone to
-				// include the header area.
+				// Extend exit zone to include revealed view-headers
 				if (this.viewHeaderEnabled) {
 					for (const h of this.revealedHeaders) {
-						const p = h.closest(
-							'.workspace-leaf-content'
-						) as HTMLElement | null;
-						if (!p) continue;
-						const pt = p.getBoundingClientRect();
-						if (pt.top >= EDGE_THRESHOLD * 2) continue;
-						// Adjacent: keep top bar while cursor
-						// is above header bottom + pad
 						const hb = h.getBoundingClientRect();
-						if (
-							e.clientY <= hb.bottom + padTop &&
-							e.clientX >= pt.left &&
-							e.clientX <= pt.right
-						) {
-							return false;
-						}
+						if (hb.bottom > topBottom) topBottom = hb.bottom;
 					}
 				}
-				return e.clientY > Math.max(topBottom, 0) + padTop;
+				return e.clientY > topBottom + EDGE_HIDE_PAD;
 
 			case Side.bottom:
 				let bottomTop = window.innerHeight;
@@ -463,10 +450,27 @@ export class HoverDetector {
 				}
 			}
 
+			// Keep header revealed while topBar is shown and cursor hasn't crossed exit threshold
+			const keepLinked =
+				sameDoc &&
+				adjacent &&
+				topShown &&
+				!this.isOutside(e, Side.top);
+
+			// Keep header revealed for EDGE_HIDE_PAD px below its bottom (standalone exit margin)
+			const hRect = header.getBoundingClientRect();
+			const keepRevealed =
+				sameDoc &&
+				inX &&
+				this.revealedHeaders.has(header) &&
+				e.clientY <= hRect.bottom + EDGE_HIDE_PAD;
+
 			if (
 				nearHeader ||
 				linkedReveal ||
-				cursorNearGroupTab
+				cursorNearGroupTab ||
+				keepLinked ||
+				keepRevealed
 			) {
 				header.classList.add('efs-revealed');
 				nowRevealed.add(header);
