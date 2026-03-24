@@ -1,7 +1,7 @@
 {
 	"id": "editor-full-screen",
 	"name": "Editor full screen",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"minAppVersion": "0.15.0",
 	"description": "Full screen mode with configurable hidden elements via modal - including sidebars. Hidden elements appear on hover.",
 	"author": "3C0D",
