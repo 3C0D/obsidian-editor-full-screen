@@ -8,7 +8,7 @@ import {
 } from './constants.ts';
 
 // px from viewport edge that triggers element reveal
-const EDGE_THRESHOLD = 40;
+const EDGE_THRESHOLD = 13;
 
 // Trigger zone for left side: ribbon width or fallback px
 const LEFT_TRIGGER_MAX = 40;
