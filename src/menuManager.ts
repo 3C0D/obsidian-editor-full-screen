@@ -46,6 +46,19 @@ export function registerMenus(plugin: EditorFullScreen): void {
 			addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
 		});
 	});
+
+	// Canvas context menu (right-click on canvas background)
+	plugin.app.workspace.onLayoutReady(() => {
+		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.canvas-wrapper')) return;
+			if (target.closest('.canvas-node')) return;
+
+			const menu = new Menu();
+			addReadingModeMenuItems(plugin, menu);
+			menu.showAtPosition({ x: e.clientX - 220, y: e.clientY });
+		});
+	});
 }
 
 /**
