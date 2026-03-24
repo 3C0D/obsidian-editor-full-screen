@@ -47,12 +47,13 @@ export function registerMenus(plugin: EditorFullScreen): void {
 		});
 	});
 
-	// Canvas context menu (right-click on canvas background)
+	// Non-editor views context menu (canvas, graph, etc.)
+	// Shows menu for any view that is not a markdown reading view or editor
 	plugin.app.workspace.onLayoutReady(() => {
 		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
-			if (!target.closest('.canvas-wrapper')) return;
-			if (target.closest('.canvas-node')) return;
+			if (target.closest('.markdown-reading-view')) return;
+			if (target.closest('.cm-editor')) return;
 
 			const menu = new Menu();
 			addReadingModeMenuItems(plugin, menu);
