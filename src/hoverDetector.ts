@@ -595,14 +595,16 @@ export class HoverDetector {
 	}
 
 	/**
-	 * The right edge of the editor scroll area.
-	 * Note: .cm-scroller shrinks when the right sidebar is open,
-	 * so this value changes depending on sidebar state.
-	 * @returns The right coordinate of the editor, or null if not found.
+	 * The right edge of the active view area.
+	 * Uses .cm-scroller for markdown editors, falls back to
+	 * .workspace-leaf-content for other view types (canvas, etc.).
+	 * @returns The right coordinate of the view, or null if not found.
 	 */
 	private getEditorRight(): number | null {
-		const el = document.querySelector('.cm-scroller');
-		return el ? el.getBoundingClientRect().right : null;
+		const scroller = document.querySelector('.cm-scroller');
+		if (scroller) return scroller.getBoundingClientRect().right;
+		const leaf = document.querySelector('.workspace-leaf-content');
+		return leaf ? leaf.getBoundingClientRect().right : null;
 	}
 
 /**
