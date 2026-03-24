@@ -1,1 +1,2 @@
-Fixed right sidebar flickering on Shift+hover open
+fix: hide top marge added.
+feature: context menu and mode avaible everywhere not only mardkown. table canvas excallidraw...  
