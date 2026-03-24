@@ -48,12 +48,15 @@ export function registerMenus(plugin: EditorFullScreen): void {
 	});
 
 	// Non-editor views context menu (canvas, graph, etc.)
-	// Shows menu for any view that is not a markdown reading view or editor
+	// Shows menu only for specific content views
 	plugin.app.workspace.onLayoutReady(() => {
 		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
 			if (target.closest('.markdown-reading-view')) return;
 			if (target.closest('.cm-editor')) return;
+			
+			// Only show in workspace split (main editor area)
+			if (!target.closest('.workspace-split.mod-vertical.mod-root')) return;
 
 			const menu = new Menu();
 			addReadingModeMenuItems(plugin, menu);
