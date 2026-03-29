@@ -5,7 +5,11 @@ import { Side } from './types.ts';
 import { EFSSettingTab } from './settings.ts';
 import { EFSModal } from './modal.ts';
 import { HoverDetector } from './hoverDetector.ts';
-import { collapseSidebar, expandSidebar, updateSidebarVisibility } from './sidebarUtils.ts';
+import {
+	collapseSidebar,
+	expandSidebar,
+	updateSidebarVisibility
+} from './sidebarUtils.ts';
 import { registerMenus } from './menuManager.ts';
 
 /**
@@ -36,13 +40,13 @@ export default class EditorFullScreen extends Plugin {
 		this.addCommand({
 			id: 'efs-toggle',
 			name: 'Toggle full screen mode',
-			callback: () => this.toggleMode(),
+			callback: () => this.toggleMode()
 		});
 
 		this.addCommand({
 			id: 'efs-open-modal',
 			name: 'Configure hidden elements',
-			callback: () => new EFSModal(this.app, this).open(),
+			callback: () => new EFSModal(this.app, this).open()
 		});
 
 		// Register context menus
@@ -62,7 +66,7 @@ export default class EditorFullScreen extends Plugin {
 	async loadSettings(): Promise<void> {
 		this.settings = {
 			...DEFAULT_SETTINGS,
-			...(await this.loadData()),
+			...(await this.loadData())
 		};
 	}
 
@@ -91,10 +95,10 @@ export default class EditorFullScreen extends Plugin {
 		this.isFullScreen = true;
 
 		// Save sidebar state before collapsing
-		const leftDock = this.app.workspace.leftSplit as
-			import('obsidian').WorkspaceSidedock;
-		const rightDock = this.app.workspace.rightSplit as
-			import('obsidian').WorkspaceSidedock;
+		const leftDock = this.app.workspace
+			.leftSplit as import('obsidian').WorkspaceSidedock;
+		const rightDock = this.app.workspace
+			.rightSplit as import('obsidian').WorkspaceSidedock;
 		this.leftWasCollapsed = leftDock.collapsed;
 		this.rightWasCollapsed = rightDock.collapsed;
 
@@ -126,21 +130,15 @@ export default class EditorFullScreen extends Plugin {
 
 		// CSS-based toggle sets
 		document.body.classList.add('efs-active');
-		
+
 		this.applyBodyClasses();
 
-		this.hoverDetector.viewHeaderEnabled =
-			this.settings.hideViewHeader;
-		this.hoverDetector.topBarEnabled =
-			this.settings.hideTopBar;
-		this.hoverDetector.ribbonEnabled =
-			this.settings.hideRibbon;
-		this.hoverDetector.statusBarEnabled =
-			this.settings.hideStatusBar;
-		this.hoverDetector.leftSidebarEnabled =
-			this.settings.hideLeftSidebar;
-		this.hoverDetector.rightSidebarEnabled =
-			this.settings.hideRightSidebar;
+		this.hoverDetector.viewHeaderEnabled = this.settings.hideViewHeader;
+		this.hoverDetector.topBarEnabled = this.settings.hideTopBar;
+		this.hoverDetector.ribbonEnabled = this.settings.hideRibbon;
+		this.hoverDetector.statusBarEnabled = this.settings.hideStatusBar;
+		this.hoverDetector.leftSidebarEnabled = this.settings.hideLeftSidebar;
+		this.hoverDetector.rightSidebarEnabled = this.settings.hideRightSidebar;
 
 		this.hoverDetector.start();
 
@@ -148,9 +146,8 @@ export default class EditorFullScreen extends Plugin {
 		this.applyBodyClasses();
 
 		// Set up existing popout windows
-		this.app.workspace.iterateAllLeaves(leaf => {
-			const doc =
-				leaf.view?.containerEl?.ownerDocument;
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const doc = leaf.view?.containerEl?.ownerDocument;
 			if (doc && doc !== document) {
 				this.registerPopout(doc);
 			}
@@ -158,26 +155,18 @@ export default class EditorFullScreen extends Plugin {
 
 		// Track future popout windows
 		this.registerEvent(
-			this.app.workspace.on(
-				'window-open',
-				(win: WorkspaceWindow) => {
-					const w = win.getContainer();
-					const doc = (w as unknown as Window)
-						?.document;
-					if (doc) this.registerPopout(doc);
-				}
-			)
+			this.app.workspace.on('window-open', (win: WorkspaceWindow) => {
+				const w = win.getContainer();
+				const doc = (w as unknown as Window)?.document;
+				if (doc) this.registerPopout(doc);
+			})
 		);
 		this.registerEvent(
-			this.app.workspace.on(
-				'window-close',
-				(win: WorkspaceWindow) => {
-					const w = win.getContainer();
-					const doc = (w as unknown as Window)
-						?.document;
-					if (doc) this.unregisterPopout(doc);
-				}
-			)
+			this.app.workspace.on('window-close', (win: WorkspaceWindow) => {
+				const w = win.getContainer();
+				const doc = (w as unknown as Window)?.document;
+				if (doc) this.unregisterPopout(doc);
+			})
 		);
 	}
 
@@ -193,22 +182,16 @@ export default class EditorFullScreen extends Plugin {
 		this.hoverDetector.onSideHide = null;
 
 		// Restore sidebars to pre-activation state
-		if (
-			this.settings.hideLeftSidebar &&
-			!this.leftWasCollapsed
-		) {
+		if (this.settings.hideLeftSidebar && !this.leftWasCollapsed) {
 			expandSidebar(this.app, 'left');
 		}
-		if (
-			this.settings.hideRightSidebar &&
-			!this.rightWasCollapsed
-		) {
+		if (this.settings.hideRightSidebar && !this.rightWasCollapsed) {
 			expandSidebar(this.app, 'right');
 		}
 
 		// Remove body classes from all windows
 		this.removeBodyClasses(document);
-		this.popoutDocs.forEach(doc => {
+		this.popoutDocs.forEach((doc) => {
 			this.removeBodyClasses(doc);
 			this.hoverDetector.removeDocument(doc);
 		});
@@ -222,25 +205,17 @@ export default class EditorFullScreen extends Plugin {
 	reapplyMode(): void {
 		// Update flags and body classes
 		this.applyBodyClasses();
-		
-		this.hoverDetector.viewHeaderEnabled =
-			this.settings.hideViewHeader;
-		this.hoverDetector.topBarEnabled =
-			this.settings.hideTopBar;
-		this.hoverDetector.ribbonEnabled =
-			this.settings.hideRibbon;
-		this.hoverDetector.statusBarEnabled =
-			this.settings.hideStatusBar;
-		this.hoverDetector.leftSidebarEnabled =
-			this.settings.hideLeftSidebar;
-		this.hoverDetector.rightSidebarEnabled =
-			this.settings.hideRightSidebar;
+
+		this.hoverDetector.viewHeaderEnabled = this.settings.hideViewHeader;
+		this.hoverDetector.topBarEnabled = this.settings.hideTopBar;
+		this.hoverDetector.ribbonEnabled = this.settings.hideRibbon;
+		this.hoverDetector.statusBarEnabled = this.settings.hideStatusBar;
+		this.hoverDetector.leftSidebarEnabled = this.settings.hideLeftSidebar;
+		this.hoverDetector.rightSidebarEnabled = this.settings.hideRightSidebar;
 
 		// Update sidebar visibility based on current settings
 		updateSidebarVisibility(this);
 	}
-
-
 
 	/** Registers a popout window for full-screen management. */
 	private registerPopout(doc: Document): void {
@@ -258,26 +233,21 @@ export default class EditorFullScreen extends Plugin {
 	}
 
 	/** Applies relevant CSS body classes to a document. */
-	private applyBodyClasses(
-		doc: Document = document
-	): void {
+	private applyBodyClasses(doc: Document = document): void {
 		doc.body.classList.add('efs-active');
-		
+
 		// Reset all managed classes first to handle reapplyMode state changes
 		this.removeBodyClasses(doc, true);
-		
-		if (this.settings.hideTopBar)
-			doc.body.classList.add('efs-hide-topbar');
-		if (this.settings.hideViewHeader)
-			doc.body.classList.add('efs-hide-viewheader');
+
+		if (this.settings.hideTopBar) doc.body.classList.add('efs-hide-topbar');
+		if (this.settings.hideViewHeader) doc.body.classList.add('efs-hide-viewheader');
 		if (this.settings.hideRibbon) {
 			doc.body.classList.add('efs-hide-ribbon');
 			if (this.settings.hideTopBar) {
 				doc.body.classList.add('efs-hide-lefttogglebtn');
 			}
 		}
-		if (this.settings.hideStatusBar)
-			doc.body.classList.add('efs-hide-statusbar');
+		if (this.settings.hideStatusBar) doc.body.classList.add('efs-hide-statusbar');
 	}
 
 	/** Removes CSS body classes from a document. */

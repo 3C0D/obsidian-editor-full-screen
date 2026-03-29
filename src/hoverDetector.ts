@@ -4,7 +4,7 @@ import {
 	TAB_HEADER_SELECTOR,
 	RIBBON_SELECTOR,
 	STATUS_BAR_SELECTOR,
-	LEFT_TOGGLE_BTN_SELECTOR,
+	LEFT_TOGGLE_BTN_SELECTOR
 } from './constants.ts';
 
 // px from viewport edge that triggers element reveal
@@ -81,9 +81,7 @@ export class HoverDetector {
 	 * Stops hover detection on all documents.
 	 */
 	stop(): void {
-		this.trackedDocs.forEach(doc =>
-			this.detachListeners(doc)
-		);
+		this.trackedDocs.forEach((doc) => this.detachListeners(doc));
 		this.trackedDocs.clear();
 		this.removeSentinels();
 		this.shownSides.clear();
@@ -106,35 +104,21 @@ export class HoverDetector {
 	}
 
 	private attachListeners(doc: Document): void {
-		doc.addEventListener(
-			'mousemove',
-			this.handleMouseMove
-		);
-		doc.addEventListener(
-			'dragover',
-			this.handleDragOver
-		);
+		doc.addEventListener('mousemove', this.handleMouseMove);
+		doc.addEventListener('dragover', this.handleDragOver);
 	}
 
 	private detachListeners(doc: Document): void {
-		doc.removeEventListener(
-			'mousemove',
-			this.handleMouseMove
-		);
-		doc.removeEventListener(
-			'dragover',
-			this.handleDragOver
-		);
+		doc.removeEventListener('mousemove', this.handleMouseMove);
+		doc.removeEventListener('dragover', this.handleDragOver);
 	}
 
 	/** Queries all tracked documents for elements. */
-	private queryAllDocs<T extends Element>(
-		selector: string
-	): T[] {
+	private queryAllDocs<T extends Element>(selector: string): T[] {
 		const results: T[] = [];
 		for (const doc of this.trackedDocs) {
 			const els = doc.querySelectorAll(selector);
-			els.forEach(el => results.push(el as T));
+			els.forEach((el) => results.push(el as T));
 		}
 		return results;
 	}
@@ -158,7 +142,7 @@ export class HoverDetector {
 			height: `${EDGE_THRESHOLD}px`,
 			zIndex: '99999',
 			pointerEvents: 'all',
-			opacity: '0',
+			opacity: '0'
 		});
 		this.sentinelTop.addEventListener('mouseenter', () => {
 			if (this.topBarEnabled) this.revealSide(Side.top);
@@ -227,7 +211,8 @@ export class HoverDetector {
 
 		// Top: generous threshold handles fast upward swipes (per-window)
 		const evtDoc = (e.target as Node)?.ownerDocument ?? document;
-		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) this.revealSide(Side.top, evtDoc);
+		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled)
+			this.revealSide(Side.top, evtDoc);
 
 		// Bottom: pull trigger zone up to stay above Windows taskbar (per-window)
 		if (
@@ -243,11 +228,12 @@ export class HoverDetector {
 			if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD) {
 				this.rightSidebarOpen = true;
 				this.rightSidebarJustOpened = true;
-				setTimeout(() => { this.rightSidebarJustOpened = false; }, 500);
+				setTimeout(() => {
+					this.rightSidebarJustOpened = false;
+				}, 500);
 				this.onSideReveal?.(Side.right);
 			}
 		}
-
 	}
 
 	/**
@@ -256,7 +242,7 @@ export class HoverDetector {
 	 * @param e - The mouse event containing cursor position.
 	 */
 	private checkHide(e: MouseEvent): void {
-		this.shownSides.forEach(side => {
+		this.shownSides.forEach((side) => {
 			if (this.isOutside(e, side)) {
 				this.hideSide(side);
 			}
@@ -287,9 +273,9 @@ export class HoverDetector {
 	private updateToggleBtn(doc: Document = document): void {
 		const btns = doc.querySelectorAll(LEFT_TOGGLE_BTN_SELECTOR);
 		if (this.shownSides.has(Side.left) || this.shownSides.has(Side.top)) {
-			btns.forEach(b => b.classList.add('efs-revealed'));
+			btns.forEach((b) => b.classList.add('efs-revealed'));
 		} else {
-			btns.forEach(b => b.classList.remove('efs-revealed'));
+			btns.forEach((b) => b.classList.remove('efs-revealed'));
 		}
 	}
 
@@ -301,10 +287,12 @@ export class HoverDetector {
 	private revealSide(side: Side, doc: Document = document): void {
 		if (!this.shownSides.has(side)) {
 			this.shownSides.add(side);
-			
-			switch(side) {
+
+			switch (side) {
 				case Side.left:
-					doc.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					doc.querySelectorAll(RIBBON_SELECTOR).forEach((el) =>
+						el.classList.add('efs-revealed')
+					);
 					this.updateToggleBtn(doc);
 					break;
 				case Side.top:
@@ -312,10 +300,12 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.add('efs-revealed'));
+					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
+						el.classList.add('efs-revealed')
+					);
 					break;
 			}
-			
+
 			this.onSideReveal?.(side);
 		}
 	}
@@ -323,10 +313,12 @@ export class HoverDetector {
 	private hideSide(side: Side, doc: Document = document): void {
 		if (this.shownSides.has(side)) {
 			this.shownSides.delete(side);
-			
-			switch(side) {
+
+			switch (side) {
 				case Side.left:
-					doc.querySelectorAll(RIBBON_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					doc.querySelectorAll(RIBBON_SELECTOR).forEach((el) =>
+						el.classList.remove('efs-revealed')
+					);
 					this.updateToggleBtn(doc);
 					break;
 				case Side.top:
@@ -334,10 +326,12 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach(el => el.classList.remove('efs-revealed'));
+					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
+						el.classList.remove('efs-revealed')
+					);
 					break;
 			}
-			
+
 			this.onSideHide?.(side);
 		}
 	}
@@ -355,7 +349,9 @@ export class HoverDetector {
 				return false;
 			case Side.top:
 				let topBottom = 0;
-				const btn = document.querySelector(LEFT_TOGGLE_BTN_SELECTOR) as HTMLElement | null;
+				const btn = document.querySelector(
+					LEFT_TOGGLE_BTN_SELECTOR
+				) as HTMLElement | null;
 				if (btn) topBottom = btn.getBoundingClientRect().bottom;
 				// Extend exit zone to include revealed view-headers
 				if (this.viewHeaderEnabled) {
@@ -368,8 +364,11 @@ export class HoverDetector {
 
 			case Side.bottom:
 				let bottomTop = window.innerHeight;
-				const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
-				if (sb && this.statusBarEnabled) bottomTop = sb.getBoundingClientRect().top;
+				const sb = document.querySelector(
+					STATUS_BAR_SELECTOR
+				) as HTMLElement | null;
+				if (sb && this.statusBarEnabled)
+					bottomTop = sb.getBoundingClientRect().top;
 				const padBottom = 30;
 				return e.clientY < bottomTop - padBottom;
 			default:
@@ -384,33 +383,28 @@ export class HoverDetector {
 	 * then toggles .efs-revealed on individual headers.
 	 */
 	private checkViewHeaderReveal(e: MouseEvent): void {
-		const headers =
-			this.queryAllDocs<HTMLElement>(
-				VIEW_HEADER_SELECTOR
-			);
+		const headers = this.queryAllDocs<HTMLElement>(VIEW_HEADER_SELECTOR);
 
 		const nowRevealed = new Set<HTMLElement>();
 		const topShown = this.shownSides.has(Side.top);
-		const evtDoc =
-			(e.target as Node)?.ownerDocument ?? document;
+		const evtDoc = (e.target as Node)?.ownerDocument ?? document;
 
-		headers.forEach(header => {
+		headers.forEach((header) => {
 			const parent = header.closest(
 				'.workspace-leaf-content'
 			) as HTMLElement | null;
 			if (!parent) return;
 
 			const pr = parent.getBoundingClientRect();
-			const inX =
-				e.clientX >= pr.left &&
-				e.clientX <= pr.right;
+			const inX = e.clientX >= pr.left && e.clientX <= pr.right;
 			const tabGroup = header.closest('.workspace-tabs');
-			const tabEl = tabGroup?.querySelector(TAB_HEADER_SELECTOR) as HTMLElement | null;
+			const tabEl = tabGroup?.querySelector(
+				TAB_HEADER_SELECTOR
+			) as HTMLElement | null;
 			const adjacent = tabEl
 				? tabEl.getBoundingClientRect().top < EDGE_THRESHOLD
 				: pr.top < EDGE_THRESHOLD * 2;
-			const sameDoc =
-				header.ownerDocument === evtDoc;
+			const sameDoc = header.ownerDocument === evtDoc;
 
 			const nearHeader =
 				sameDoc &&
@@ -424,14 +418,11 @@ export class HoverDetector {
 				topShown &&
 				adjacent &&
 				inX &&
-				e.clientY <=
-					pr.top + EDGE_THRESHOLD;
+				e.clientY <= pr.top + EDGE_THRESHOLD;
 
 			// Reverse group link: cursor is near the tab
 			// header of the same group
-			const group = header.closest(
-				'.workspace-tabs'
-			);
+			const group = header.closest('.workspace-tabs');
 			let cursorNearGroupTab = false;
 			if (group && sameDoc) {
 				const tab = group.querySelector(
@@ -452,10 +443,7 @@ export class HoverDetector {
 
 			// Keep header revealed while topBar is shown and cursor hasn't crossed exit threshold
 			const keepLinked =
-				sameDoc &&
-				adjacent &&
-				topShown &&
-				!this.isOutside(e, Side.top);
+				sameDoc && adjacent && topShown && !this.isOutside(e, Side.top);
 
 			// Keep header revealed for EDGE_HIDE_PAD px below its bottom (standalone exit margin)
 			const hRect = header.getBoundingClientRect();
@@ -481,7 +469,7 @@ export class HoverDetector {
 		});
 
 		// Remove reveal from headers no longer hovered
-		this.revealedHeaders.forEach(h => {
+		this.revealedHeaders.forEach((h) => {
 			if (!nowRevealed.has(h)) {
 				h.classList.remove('efs-revealed');
 			}
@@ -495,25 +483,17 @@ export class HoverDetector {
 	 * view-header is already revealed.
 	 */
 	private checkTabHeaderReveal(e: MouseEvent): void {
-		const tabs =
-			this.queryAllDocs<HTMLElement>(
-				TAB_HEADER_SELECTOR
-			);
+		const tabs = this.queryAllDocs<HTMLElement>(TAB_HEADER_SELECTOR);
 
 		const nowRevealed = new Set<HTMLElement>();
 		const topShown = this.shownSides.has(Side.top);
-		const evtDoc =
-			(e.target as Node)?.ownerDocument ?? document;
+		const evtDoc = (e.target as Node)?.ownerDocument ?? document;
 
-		tabs.forEach(tab => {
+		tabs.forEach((tab) => {
 			const tr = tab.getBoundingClientRect();
-			const inX =
-				e.clientX >= tr.left &&
-				e.clientX <= tr.right;
-			const adjacent =
-				tr.top < EDGE_THRESHOLD * 2;
-			const sameDoc =
-				tab.ownerDocument === evtDoc;
+			const inX = e.clientX >= tr.left && e.clientX <= tr.right;
+			const adjacent = tr.top < EDGE_THRESHOLD * 2;
+			const sameDoc = tab.ownerDocument === evtDoc;
 
 			const nearTab =
 				sameDoc &&
@@ -522,21 +502,13 @@ export class HoverDetector {
 				e.clientY <= tr.bottom + EDGE_THRESHOLD;
 
 			// Link only within same window
-			const linkedTop =
-				sameDoc &&
-				topShown &&
-				adjacent &&
-				inX;
+			const linkedTop = sameDoc && topShown && adjacent && inX;
 
-			const group = tab.closest(
-				'.workspace-tabs'
-			);
+			const group = tab.closest('.workspace-tabs');
 			const groupLinked =
 				group !== null &&
 				[...this.revealedHeaders].some(
-					h =>
-						h.closest('.workspace-tabs') ===
-						group
+					(h) => h.closest('.workspace-tabs') === group
 				);
 
 			if (nearTab || linkedTop || groupLinked) {
@@ -549,11 +521,10 @@ export class HoverDetector {
 		});
 
 		// Reveal titlebars only in the event's window
-		const titlebars =
-			this.queryAllDocs<HTMLElement>('.titlebar');
-		titlebars.forEach(tb => {
+		const titlebars = this.queryAllDocs<HTMLElement>('.titlebar');
+		titlebars.forEach((tb) => {
 			if (tb.ownerDocument !== evtDoc) return;
-			const anyLocal = [...nowRevealed].some(h => {
+			const anyLocal = [...nowRevealed].some((h) => {
 				if (h.ownerDocument !== evtDoc) return false;
 				const r = h.getBoundingClientRect();
 				return r.top < EDGE_THRESHOLD;
@@ -566,7 +537,7 @@ export class HoverDetector {
 			}
 		});
 
-		this.revealedTabHeaders.forEach(h => {
+		this.revealedTabHeaders.forEach((h) => {
 			if (!nowRevealed.has(h)) {
 				h.classList.remove('efs-revealed');
 			}
@@ -576,25 +547,19 @@ export class HoverDetector {
 		// Sentinel: disable when top elements are visible
 		if (this.sentinelTop) {
 			this.sentinelTop.style.pointerEvents =
-				nowRevealed.size > 0 || topShown
-					? 'none'
-					: 'all';
+				nowRevealed.size > 0 || topShown ? 'none' : 'all';
 		}
 	}
 
 	/** Clears all revealed view-headers. */
 	private clearRevealedHeaders(): void {
-		this.revealedHeaders.forEach(h =>
-			h.classList.remove('efs-revealed')
-		);
+		this.revealedHeaders.forEach((h) => h.classList.remove('efs-revealed'));
 		this.revealedHeaders.clear();
 	}
 
 	/** Clears all revealed tab headers. */
 	private clearRevealedTabHeaders(): void {
-		this.revealedTabHeaders.forEach(h =>
-			h.classList.remove('efs-revealed')
-		);
+		this.revealedTabHeaders.forEach((h) => h.classList.remove('efs-revealed'));
 		this.revealedTabHeaders.clear();
 	}
 
@@ -611,19 +576,19 @@ export class HoverDetector {
 		return leaf ? leaf.getBoundingClientRect().right : null;
 	}
 
-/**
- * Returns the left edge of the right sidebar panel.
- * Used to determine when the cursor has moved far enough left to close the sidebar.
- */
+	/**
+	 * Returns the left edge of the right sidebar panel.
+	 * Used to determine when the cursor has moved far enough left to close the sidebar.
+	 */
 	private getRightSidebarLeft(): number {
 		const el = document.querySelector('.mod-right-split') as HTMLElement | null;
 		return el ? el.getBoundingClientRect().left : window.innerWidth;
 	}
 
-/**
- * Returns the right edge of the left sidebar panel.
- * Used to determine when the cursor has moved far enough right to close the sidebar.
- */
+	/**
+	 * Returns the right edge of the left sidebar panel.
+	 * Used to determine when the cursor has moved far enough right to close the sidebar.
+	 */
 	private getLeftSidebarRight(): number {
 		const el = document.querySelector('.mod-left-split') as HTMLElement | null;
 		return el ? el.getBoundingClientRect().right : 0;

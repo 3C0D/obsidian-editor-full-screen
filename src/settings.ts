@@ -17,12 +17,16 @@ export class EFSSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Persistent full screen')
-			.setDesc('Restore full screen mode on restart if it was active when Obsidian closed')
-			.addToggle(toggle =>
-				toggle.setValue(this.plugin.settings.modeAtStart).onChange(async value => {
-					this.plugin.settings.modeAtStart = value;
-					await this.plugin.saveSettings();
-				})
+			.setDesc(
+				'Restore full screen mode on restart if it was active when Obsidian closed'
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.modeAtStart)
+					.onChange(async (value) => {
+						this.plugin.settings.modeAtStart = value;
+						await this.plugin.saveSettings();
+					})
 			);
 
 		containerEl.createEl('h3', { text: 'Elements to hide' });
@@ -31,9 +35,9 @@ export class EFSSettingTab extends PluginSettingTab {
 			new Setting(containerEl)
 				.setName(label)
 				.setDesc(desc)
-				.addToggle(toggle => {
+				.addToggle((toggle) => {
 					if (key === 'hideRibbon') ribbonToggle = toggle;
-					toggle.setValue(this.plugin.settings[key]).onChange(async value => {
+					toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
 						this.plugin.settings[key] = value;
 						if (key === 'hideLeftSidebar' && value) {
 							// Also hide the ribbon

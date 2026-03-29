@@ -27,9 +27,9 @@ export class EFSModal extends Modal {
 			new Setting(contentEl)
 				.setName(label)
 				.setDesc(desc)
-				.addToggle(toggle => {
+				.addToggle((toggle) => {
 					if (key === 'hideRibbon') ribbonToggle = toggle;
-					toggle.setValue(this.plugin.settings[key]).onChange(async value => {
+					toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
 						this.plugin.settings[key] = value;
 
 						// Enabling hide left sidebar forces hide ribbon on
@@ -47,7 +47,7 @@ export class EFSModal extends Modal {
 				});
 		});
 
-		new Setting(contentEl).addButton(btn =>
+		new Setting(contentEl).addButton((btn) =>
 			btn
 				.setButtonText('Close')
 				.setCta()

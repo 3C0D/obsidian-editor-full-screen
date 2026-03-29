@@ -1,4 +1,3 @@
-import { Side } from './types.ts';
 import type { EFSSettings, ToggleItem } from './types.ts';
 
 /** Configuration items for the settings modal. */
@@ -6,29 +5,29 @@ export const TOGGLE_ITEMS: ToggleItem[] = [
 	{
 		key: 'hideTopBar',
 		label: 'Top bar',
-		desc: 'Title bar + tab strip',
+		desc: 'Title bar + tab strip'
 	},
 	{
 		key: 'hideViewHeader',
 		label: 'View header',
-		desc: 'File title bar inside the editor pane',
+		desc: 'File title bar inside the editor pane'
 	},
 	{
 		key: 'hideLeftSidebar',
 		label: 'Left sidebar',
-		desc: 'Toggles on ribbon hover, closes on editor return',
+		desc: 'Toggles on ribbon hover, closes on editor return'
 	},
 	{
 		key: 'hideRightSidebar',
 		label: 'Right sidebar',
-		desc: 'Shift + hover right edge to toggle',
+		desc: 'Shift + hover right edge to toggle'
 	},
 	{
 		key: 'hideRibbon',
 		label: 'Ribbon',
-		desc: 'Left icon ribbon (auto-enabled with left sidebar)',
+		desc: 'Left icon ribbon (auto-enabled with left sidebar)'
 	},
-	{ key: 'hideStatusBar', label: 'Status bar', desc: 'Bottom status bar' },
+	{ key: 'hideStatusBar', label: 'Status bar', desc: 'Bottom status bar' }
 ];
 
 /**
@@ -36,8 +35,7 @@ export const TOGGLE_ITEMS: ToggleItem[] = [
  * Used by HoverDetector for multi-split position-based reveal.
  * Not in ELEMENT_CONFIGS — managed via CSS body class instead.
  */
-export const VIEW_HEADER_SELECTOR =
-	'.mod-root .workspace-leaf-content > .view-header';
+export const VIEW_HEADER_SELECTOR = '.mod-root .workspace-leaf-content > .view-header';
 
 export const TAB_HEADER_SELECTOR =
 	'.mod-root .workspace-tabs .workspace-tab-header-container';
@@ -56,5 +54,5 @@ export const DEFAULT_SETTINGS: EFSSettings = {
 	hideViewHeader: false,
 	hideStatusBar: true,
 	hideLeftSidebar: false,
-	hideRightSidebar: false,
+	hideRightSidebar: false
 };

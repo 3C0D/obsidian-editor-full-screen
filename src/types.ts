@@ -22,10 +22,8 @@ export enum Side {
 	right,
 	bottom,
 	top,
-	none,
+	none
 }
-
-
 
 export interface EFSSettings {
 	modeAtStart: boolean;

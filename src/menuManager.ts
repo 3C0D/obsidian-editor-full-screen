@@ -54,7 +54,7 @@ export function registerMenus(plugin: EditorFullScreen): void {
 			const target = e.target as HTMLElement;
 			if (target.closest('.markdown-reading-view')) return;
 			if (target.closest('.cm-editor')) return;
-			
+
 			// Only show in workspace split (main editor area)
 			if (!target.closest('.workspace-split.mod-vertical.mod-root')) return;
 
@@ -70,7 +70,7 @@ export function registerMenus(plugin: EditorFullScreen): void {
  * Provides toggle full screen and settings options.
  */
 export function addEditorMenuItems(plugin: EditorFullScreen, menu: Menu): void {
-	menu.addItem(item => {
+	menu.addItem((item) => {
 		item.setTitle('Full screen').setIcon('expand');
 
 		const sub = (item as any).setSubmenu();
@@ -95,13 +95,13 @@ export function addEditorMenuItems(plugin: EditorFullScreen, menu: Menu): void {
  * in reading mode without text selection.
  */
 export function addReadingModeMenuItems(plugin: EditorFullScreen, menu: Menu): void {
-	menu.addItem(item =>
+	menu.addItem((item) =>
 		item
 			.setTitle('Toggle full screen')
 			.setIcon('expand')
 			.onClick(() => plugin.toggleMode())
 	);
-	menu.addItem(item =>
+	menu.addItem((item) =>
 		item
 			.setTitle('Configure hidden elements')
 			.setIcon('layout')
