@@ -58,9 +58,6 @@ export class HoverDetector {
 	// Currently revealed view-headers (managed via CSS class)
 	private revealedHeaders = new Set<HTMLElement>();
 
-	// Tracks headers that already have mouseleave listener attached
-	private headersWithListener = new WeakSet<HTMLElement>();
-
 	// Timer for delayed sidebar hide (prevents false triggers on tree resize)
 	private sidebarHideTimer: ReturnType<typeof setTimeout> | null = null;
 	private sidebarListenersAttached = false;
@@ -489,12 +486,6 @@ export class HoverDetector {
 			) {
 				header.classList.add('efs-revealed');
 				nowRevealed.add(header);
-				if (!this.headersWithListener.has(header)) {
-					this.headersWithListener.add(header);
-					header.addEventListener('mouseleave', () => {
-						// Let checkViewHeaderReveal handle cleanup — no timer needed here
-					});
-				}
 				if (adjacent && sameDoc && this.topBarEnabled) {
 					this.revealSide(Side.top, evtDoc);
 				}
@@ -617,20 +608,14 @@ export class HoverDetector {
 			this.hideSide(Side.left);
 			this.clearRevealedHeaders();
 		});
-		const onLeftEnter = (): void => {
-			if (this.sidebarHideTimer) {
-				clearTimeout(this.sidebarHideTimer);
-				this.sidebarHideTimer = null;
-			}
-		};
 
 		if (leftEl) {
 			leftEl.addEventListener('mouseleave', onLeftLeave);
-			leftEl.addEventListener('mouseenter', onLeftEnter);
+			leftEl.addEventListener('mouseenter', cancel);
 		}
 		if (ribbonEl) {
 			ribbonEl.addEventListener('mouseleave', onLeftLeave);
-			ribbonEl.addEventListener('mouseenter', onLeftEnter);
+			ribbonEl.addEventListener('mouseenter', cancel);
 		}
 
 		// Right sidebar
@@ -690,14 +675,5 @@ export class HoverDetector {
 	private getRightSidebarLeft(): number {
 		const el = document.querySelector('.mod-right-split') as HTMLElement | null;
 		return el ? el.getBoundingClientRect().left : window.innerWidth;
-	}
-
-	/**
-	 * Returns the right edge of the left sidebar panel.
-	 * Used to determine when the cursor has moved far enough right to close the sidebar.
-	 */
-	private getLeftSidebarRight(): number {
-		const el = document.querySelector('.mod-left-split') as HTMLElement | null;
-		return el ? el.getBoundingClientRect().right : 0;
 	}
 }
