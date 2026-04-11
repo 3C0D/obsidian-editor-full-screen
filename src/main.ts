@@ -19,9 +19,9 @@ import { registerMenus } from './menuManager.ts';
  */
 export default class EditorFullScreen extends Plugin {
 	isFullScreen = false;
-	settings: EFSSettings;
+	settings!: EFSSettings;
 
-	private hoverDetector: HoverDetector;
+	private hoverDetector!: HoverDetector;
 
 	// Sidebar state saved before activation
 	private leftWasCollapsed = false;

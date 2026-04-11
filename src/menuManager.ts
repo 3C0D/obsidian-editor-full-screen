@@ -60,7 +60,7 @@ export function registerMenus(plugin: EditorFullScreen): void {
 
 			const menu = new Menu();
 			addReadingModeMenuItems(plugin, menu);
-			menu.showAtPosition({ x: e.clientX - 220, y: e.clientY });
+			menu.showAtPosition({ x: e.clientX - 240, y: e.clientY });
 		});
 	});
 }

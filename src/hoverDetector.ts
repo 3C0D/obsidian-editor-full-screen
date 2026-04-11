@@ -13,8 +13,8 @@ const EDGE_THRESHOLD = 13;
 // Trigger zone for left side: ribbon width or fallback px
 const LEFT_TRIGGER_MAX = 40;
 
-// Extra bottom offset: avoids triggering status bar when Windows taskbar captures cursor
-const BOTTOM_EXTRA_MARGIN = 40;
+// px — trigger zone for status bar reveal
+const BOTTOM_SENTINEL_WIDTH = 180;
 
 // Exit margin below the last revealed top element before hiding
 const EDGE_HIDE_PAD = 25;
@@ -58,11 +58,19 @@ export class HoverDetector {
 	// Currently revealed view-headers (managed via CSS class)
 	private revealedHeaders = new Set<HTMLElement>();
 
+	// Tracks headers that already have mouseleave listener attached
+	private headersWithListener = new WeakSet<HTMLElement>();
+
+	// Timer for delayed sidebar hide (prevents false triggers on tree resize)
+	private sidebarHideTimer: ReturnType<typeof setTimeout> | null = null;
+	private sidebarListenersAttached = false;
+
 	// Currently revealed tab headers (managed via CSS class)
 	private revealedTabHeaders = new Set<HTMLElement>();
 
 	// Sentinel elements for catching fast mouse entries
 	private sentinelTop: HTMLDivElement | null = null;
+	private sentinelBottom: HTMLDivElement | null = null;
 
 	// Tracked documents (main + popout windows)
 	private trackedDocs = new Set<Document>();
@@ -75,6 +83,7 @@ export class HoverDetector {
 	start(): void {
 		this.addDocument(document);
 		this.createSentinels();
+		this.attachSidebarListeners();
 	}
 
 	/**
@@ -84,6 +93,10 @@ export class HoverDetector {
 		this.trackedDocs.forEach((doc) => this.detachListeners(doc));
 		this.trackedDocs.clear();
 		this.removeSentinels();
+		if (this.sidebarHideTimer) {
+			clearTimeout(this.sidebarHideTimer);
+			this.sidebarHideTimer = null;
+		}
 		this.shownSides.clear();
 		this.rightSidebarOpen = false;
 		this.clearRevealedHeaders();
@@ -148,6 +161,30 @@ export class HoverDetector {
 			if (this.topBarEnabled) this.revealSide(Side.top);
 		});
 		document.body.appendChild(this.sentinelTop);
+
+		this.sentinelBottom = document.createElement('div');
+		Object.assign(this.sentinelBottom.style, {
+			position: 'fixed',
+			bottom: '0',
+			right: '0',
+			width: `${BOTTOM_SENTINEL_WIDTH}px`,
+			height: `${EDGE_THRESHOLD}px`,
+			zIndex: '99999',
+			pointerEvents: 'all',
+			opacity: '0'
+		});
+		this.sentinelBottom.addEventListener('mouseenter', () => {
+			if (this.statusBarEnabled) {
+				const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
+				if (sb) {
+					const rect = sb.getBoundingClientRect();
+					if (rect.width > 0) this.sentinelBottom!.style.width = `${rect.width}px`;
+					if (rect.height > 0) this.sentinelBottom!.style.height = `${rect.height}px`;
+				}
+				this.revealSide(Side.bottom);
+			}
+		});
+		document.body.appendChild(this.sentinelBottom);
 	}
 
 	/**
@@ -156,6 +193,8 @@ export class HoverDetector {
 	private removeSentinels(): void {
 		this.sentinelTop?.remove();
 		this.sentinelTop = null;
+		this.sentinelBottom?.remove();
+		this.sentinelBottom = null;
 	}
 
 	/**
@@ -214,14 +253,6 @@ export class HoverDetector {
 		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled)
 			this.revealSide(Side.top, evtDoc);
 
-		// Bottom: pull trigger zone up to stay above Windows taskbar (per-window)
-		if (
-			e.clientY >= window.innerHeight - EDGE_THRESHOLD - BOTTOM_EXTRA_MARGIN &&
-			this.statusBarEnabled
-		) {
-			this.revealSide(Side.bottom, evtDoc);
-		}
-
 		// Right sidebar: Shift + near right edge → open once, then wait for editor return (main window only)
 		if (isMainDoc && !this.rightSidebarOpen && e.shiftKey) {
 			const editorRight = this.getEditorRight();
@@ -252,16 +283,10 @@ export class HoverDetector {
 		if (this.rightSidebarOpen && !this.rightSidebarJustOpened) {
 			const sidebarLeft = this.getRightSidebarLeft();
 			if (e.clientX < sidebarLeft - EDGE_THRESHOLD) {
-				this.rightSidebarOpen = false;
-				this.onSideHide?.(Side.right);
-			}
-		}
-
-		// Hide left side when cursor moves away from sidebar
-		if (this.shownSides.has(Side.left)) {
-			const sidebarRight = this.getLeftSidebarRight();
-			if (e.clientX > sidebarRight + EDGE_THRESHOLD) {
-				this.hideSide(Side.left);
+				this.scheduleHide(() => {
+					this.rightSidebarOpen = false;
+					this.onSideHide?.(Side.right);
+				});
 			}
 		}
 	}
@@ -300,6 +325,7 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
+					if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'none';
 					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
 						el.classList.add('efs-revealed')
 					);
@@ -326,6 +352,7 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
+					if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'all';
 					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
 						el.classList.remove('efs-revealed')
 					);
@@ -462,6 +489,12 @@ export class HoverDetector {
 			) {
 				header.classList.add('efs-revealed');
 				nowRevealed.add(header);
+				if (!this.headersWithListener.has(header)) {
+					this.headersWithListener.add(header);
+					header.addEventListener('mouseleave', () => {
+						// Let checkViewHeaderReveal handle cleanup — no timer needed here
+					});
+				}
 				if (adjacent && sameDoc && this.topBarEnabled) {
 					this.revealSide(Side.top, evtDoc);
 				}
@@ -555,6 +588,80 @@ export class HoverDetector {
 	private clearRevealedHeaders(): void {
 		this.revealedHeaders.forEach((h) => h.classList.remove('efs-revealed'));
 		this.revealedHeaders.clear();
+	}
+
+	private scheduleHide(fn: () => void): void {
+		if (this.sidebarHideTimer) clearTimeout(this.sidebarHideTimer);
+		this.sidebarHideTimer = setTimeout(fn, 200);
+	}
+
+	/** Attaches mouseleave on sidebars and status bar as fallback for when
+	 *  mousemove stops firing (cursor inside an iframe). Each triggers the
+	 *  same hide logic as checkHide, delayed to absorb file tree resize events. */
+	private attachSidebarListeners(): void {
+		if (this.sidebarListenersAttached) return;
+		this.sidebarListenersAttached = true;
+
+		const cancel = (): void => {
+			if (this.sidebarHideTimer) {
+				clearTimeout(this.sidebarHideTimer);
+				this.sidebarHideTimer = null;
+			}
+		};
+
+		// Left sidebar + ribbon: treat as one zone
+		const leftEl = document.querySelector('.mod-left-split') as HTMLElement | null;
+		const ribbonEl = document.querySelector(RIBBON_SELECTOR) as HTMLElement | null;
+
+		const onLeftLeave = (): void => this.scheduleHide(() => {
+			this.hideSide(Side.left);
+			this.clearRevealedHeaders();
+		});
+		const onLeftEnter = (): void => {
+			if (this.sidebarHideTimer) {
+				clearTimeout(this.sidebarHideTimer);
+				this.sidebarHideTimer = null;
+			}
+		};
+
+		if (leftEl) {
+			leftEl.addEventListener('mouseleave', onLeftLeave);
+			leftEl.addEventListener('mouseenter', onLeftEnter);
+		}
+		if (ribbonEl) {
+			ribbonEl.addEventListener('mouseleave', onLeftLeave);
+			ribbonEl.addEventListener('mouseenter', onLeftEnter);
+		}
+
+		// Right sidebar
+		const rightEl = document.querySelector('.mod-right-split') as HTMLElement | null;
+		if (rightEl) {
+			rightEl.addEventListener('mouseleave', () =>
+				this.scheduleHide(() => {
+					if (this.rightSidebarOpen && !this.rightSidebarJustOpened) {
+						this.rightSidebarOpen = false;
+						this.onSideHide?.(Side.right);
+					}
+					this.clearRevealedHeaders();
+				})
+			);
+			rightEl.addEventListener('mouseenter', cancel);
+		}
+
+		// Status bar: hide on mouseleave, no mouseenter needed (sentinel handles reveal)
+		const statusEls = document.querySelectorAll(STATUS_BAR_SELECTOR);
+		statusEls.forEach((el) => {
+			el.addEventListener('mouseleave', () =>
+				this.scheduleHide(() => this.hideSide(Side.bottom))
+			);
+		});
+
+		// Hide status bar when cursor leaves the window entirely
+		document.documentElement.addEventListener('mouseleave', () => {
+			if (this.shownSides.has(Side.bottom)) {
+				this.scheduleHide(() => this.hideSide(Side.bottom));
+			}
+		});
 	}
 
 	/** Clears all revealed tab headers. */
