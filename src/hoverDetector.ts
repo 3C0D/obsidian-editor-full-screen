@@ -100,7 +100,7 @@ export class HoverDetector {
 		this.clearRevealedTabHeaders();
 	}
 
-	/** Registers a popout document for hover detection. */
+	/** Registers an additional document (popout window) so hover detection works across all open windows. */
 	addDocument(doc: Document): void {
 		if (this.trackedDocs.has(doc)) return;
 		this.trackedDocs.add(doc);
@@ -172,11 +172,15 @@ export class HoverDetector {
 		});
 		this.sentinelBottom.addEventListener('mouseenter', () => {
 			if (this.statusBarEnabled) {
-				const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
+				const sb = document.querySelector(
+					STATUS_BAR_SELECTOR
+				) as HTMLElement | null;
 				if (sb) {
 					const rect = sb.getBoundingClientRect();
-					if (rect.width > 0) this.sentinelBottom!.style.width = `${rect.width}px`;
-					if (rect.height > 0) this.sentinelBottom!.style.height = `${rect.height}px`;
+					if (rect.width > 0)
+						this.sentinelBottom!.style.width = `${rect.width}px`;
+					if (rect.height > 0)
+						this.sentinelBottom!.style.height = `${rect.height}px`;
 				}
 				this.revealSide(Side.bottom);
 			}
@@ -275,17 +279,6 @@ export class HoverDetector {
 				this.hideSide(side);
 			}
 		});
-
-		// Hide right sidebar when cursor moves away from it
-		if (this.rightSidebarOpen && !this.rightSidebarJustOpened) {
-			const sidebarLeft = this.getRightSidebarLeft();
-			if (e.clientX < sidebarLeft - EDGE_THRESHOLD) {
-				this.scheduleHide(() => {
-					this.rightSidebarOpen = false;
-					this.onSideHide?.(Side.right);
-				});
-			}
-		}
 	}
 
 	/**
@@ -322,7 +315,8 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'none';
+					if (this.sentinelBottom)
+						this.sentinelBottom.style.pointerEvents = 'none';
 					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
 						el.classList.add('efs-revealed')
 					);
@@ -349,7 +343,8 @@ export class HoverDetector {
 					this.updateToggleBtn(doc);
 					break;
 				case Side.bottom:
-					if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'all';
+					if (this.sentinelBottom)
+						this.sentinelBottom.style.pointerEvents = 'all';
 					doc.querySelectorAll(STATUS_BAR_SELECTOR).forEach((el) =>
 						el.classList.remove('efs-revealed')
 					);
@@ -604,10 +599,11 @@ export class HoverDetector {
 		const leftEl = document.querySelector('.mod-left-split') as HTMLElement | null;
 		const ribbonEl = document.querySelector(RIBBON_SELECTOR) as HTMLElement | null;
 
-		const onLeftLeave = (): void => this.scheduleHide(() => {
-			this.hideSide(Side.left);
-			this.clearRevealedHeaders();
-		});
+		const onLeftLeave = (): void =>
+			this.scheduleHide(() => {
+				this.hideSide(Side.left);
+				this.clearRevealedHeaders();
+			});
 
 		if (leftEl) {
 			leftEl.addEventListener('mouseleave', onLeftLeave);
@@ -640,13 +636,6 @@ export class HoverDetector {
 				this.scheduleHide(() => this.hideSide(Side.bottom))
 			);
 		});
-
-		// Hide status bar when cursor leaves the window entirely
-		document.documentElement.addEventListener('mouseleave', () => {
-			if (this.shownSides.has(Side.bottom)) {
-				this.scheduleHide(() => this.hideSide(Side.bottom));
-			}
-		});
 	}
 
 	/** Clears all revealed tab headers. */
@@ -666,14 +655,5 @@ export class HoverDetector {
 		if (scroller) return scroller.getBoundingClientRect().right;
 		const leaf = document.querySelector('.workspace-leaf-content');
 		return leaf ? leaf.getBoundingClientRect().right : null;
-	}
-
-	/**
-	 * Returns the left edge of the right sidebar panel.
-	 * Used to determine when the cursor has moved far enough left to close the sidebar.
-	 */
-	private getRightSidebarLeft(): number {
-		const el = document.querySelector('.mod-right-split') as HTMLElement | null;
-		return el ? el.getBoundingClientRect().left : window.innerWidth;
 	}
 }
