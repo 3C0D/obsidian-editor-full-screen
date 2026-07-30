@@ -1,1 +1,1 @@
-Works on every view
+no more opening right sidebar with a modifier. Use obsidian-easy-toggle-sidebar or obsidian-gesture-commander
