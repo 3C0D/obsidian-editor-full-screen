@@ -35,15 +35,6 @@ export class HoverDetector {
 	onSideReveal: ((side: Side) => void) | null = null;
 	onSideHide: ((side: Side) => void) | null = null;
 
-	// Tracks whether the right sidebar is currently open.
-	// Separate from shownSides because right sidebar is handled via Obsidian API
-	// (WorkspaceSidedock.expand/collapse), not by elementManager.
-	private rightSidebarOpen = false;
-
-	// Flag to prevent race condition: when sidebar opens, its left edge animates
-	// left, which can temporarily trigger the closing condition in checkHide.
-	private rightSidebarJustOpened = false;
-
 	// Whether view-header hover detection is active
 	viewHeaderEnabled = false;
 
@@ -61,6 +52,7 @@ export class HoverDetector {
 	// Timer for delayed sidebar hide (prevents false triggers on tree resize)
 	private sidebarHideTimer: ReturnType<typeof setTimeout> | null = null;
 	private sidebarListenersAttached = false;
+	private sidebarCleanups: Array<() => void> = [];
 
 	// Currently revealed tab headers (managed via CSS class)
 	private revealedTabHeaders = new Set<HTMLElement>();
@@ -90,12 +82,12 @@ export class HoverDetector {
 		this.trackedDocs.forEach((doc) => this.detachListeners(doc));
 		this.trackedDocs.clear();
 		this.removeSentinels();
+		this.detachSidebarListeners();
 		if (this.sidebarHideTimer) {
 			clearTimeout(this.sidebarHideTimer);
 			this.sidebarHideTimer = null;
 		}
 		this.shownSides.clear();
-		this.rightSidebarOpen = false;
 		this.clearRevealedHeaders();
 		this.clearRevealedTabHeaders();
 	}
@@ -253,19 +245,6 @@ export class HoverDetector {
 		const evtDoc = (e.target as Node)?.ownerDocument ?? document;
 		if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled)
 			this.revealSide(Side.top, evtDoc);
-
-		// Right sidebar: Shift + near right edge → open once, then wait for editor return (main window only)
-		if (isMainDoc && !this.rightSidebarOpen && e.shiftKey) {
-			const editorRight = this.getEditorRight();
-			if (editorRight !== null && e.clientX >= editorRight - EDGE_THRESHOLD) {
-				this.rightSidebarOpen = true;
-				this.rightSidebarJustOpened = true;
-				setTimeout(() => {
-					this.rightSidebarJustOpened = false;
-				}, 500);
-				this.onSideReveal?.(Side.right);
-			}
-		}
 	}
 
 	/**
@@ -608,52 +587,59 @@ export class HoverDetector {
 		if (leftEl) {
 			leftEl.addEventListener('mouseleave', onLeftLeave);
 			leftEl.addEventListener('mouseenter', cancel);
+			this.sidebarCleanups.push(() => {
+				leftEl.removeEventListener('mouseleave', onLeftLeave);
+				leftEl.removeEventListener('mouseenter', cancel);
+			});
 		}
 		if (ribbonEl) {
 			ribbonEl.addEventListener('mouseleave', onLeftLeave);
 			ribbonEl.addEventListener('mouseenter', cancel);
+			this.sidebarCleanups.push(() => {
+				ribbonEl.removeEventListener('mouseleave', onLeftLeave);
+				ribbonEl.removeEventListener('mouseenter', cancel);
+			});
 		}
 
-		// Right sidebar
+		// Right sidebar: auto-close on mouseleave (no mouseenter cancel needed)
 		const rightEl = document.querySelector('.mod-right-split') as HTMLElement | null;
 		if (rightEl) {
-			rightEl.addEventListener('mouseleave', () =>
+			const onRightLeave = (): void =>
 				this.scheduleHide(() => {
-					if (this.rightSidebarOpen && !this.rightSidebarJustOpened) {
-						this.rightSidebarOpen = false;
+					if (this.rightSidebarEnabled) {
 						this.onSideHide?.(Side.right);
 					}
-					this.clearRevealedHeaders();
-				})
-			);
-			rightEl.addEventListener('mouseenter', cancel);
+				});
+			const onRightEnter = cancel;
+			rightEl.addEventListener('mouseleave', onRightLeave);
+			rightEl.addEventListener('mouseenter', onRightEnter);
+			this.sidebarCleanups.push(() => {
+				rightEl.removeEventListener('mouseleave', onRightLeave);
+				rightEl.removeEventListener('mouseenter', onRightEnter);
+			});
 		}
 
 		// Status bar: hide on mouseleave, no mouseenter needed (sentinel handles reveal)
 		const statusEls = document.querySelectorAll(STATUS_BAR_SELECTOR);
 		statusEls.forEach((el) => {
-			el.addEventListener('mouseleave', () =>
-				this.scheduleHide(() => this.hideSide(Side.bottom))
-			);
+			const onStatusLeave = (): void =>
+				this.scheduleHide(() => this.hideSide(Side.bottom));
+			el.addEventListener('mouseleave', onStatusLeave);
+			this.sidebarCleanups.push(() => {
+				el.removeEventListener('mouseleave', onStatusLeave);
+			});
 		});
+	}
+
+	private detachSidebarListeners(): void {
+		this.sidebarCleanups.forEach((cleanup) => cleanup());
+		this.sidebarCleanups = [];
+		this.sidebarListenersAttached = false;
 	}
 
 	/** Clears all revealed tab headers. */
 	private clearRevealedTabHeaders(): void {
 		this.revealedTabHeaders.forEach((h) => h.classList.remove('efs-revealed'));
 		this.revealedTabHeaders.clear();
-	}
-
-	/**
-	 * The right edge of the active view area.
-	 * Uses .cm-scroller for markdown editors, falls back to
-	 * .workspace-leaf-content for other view types (canvas, etc.).
-	 * @returns The right coordinate of the view, or null if not found.
-	 */
-	private getEditorRight(): number | null {
-		const scroller = document.querySelector('.cm-scroller');
-		if (scroller) return scroller.getBoundingClientRect().right;
-		const leaf = document.querySelector('.workspace-leaf-content');
-		return leaf ? leaf.getBoundingClientRect().right : null;
 	}
 }

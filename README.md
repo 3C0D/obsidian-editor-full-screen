@@ -7,7 +7,7 @@ Full screen mode with configurable hidden elements via modal - including sidebar
 - **Single full screen mode** with individually configurable hidden elements
 - **Hover-to-reveal**: move cursor to viewport edges to temporarily show hidden elements
 - **Left sidebar**: collapses on activation, reveals on ribbon hover, hides on editor return
-- **Right sidebar**: reveals with **Shift + hover** near right editor edge, hides on editor return
+- **Right sidebar**: collapses on activation, auto-closes when leaving the sidebar area
 - **Persistent state**: remembers whether full screen was active before a restart (optional)
 
 ### Hidden elements (configurable)
@@ -19,7 +19,13 @@ Full screen mode with configurable hidden elements via modal - including sidebar
 | Ribbon | Left edge |
 | Status bar | Bottom edge |
 | Left sidebar | Revealed with ribbon on left hover |
-| Right sidebar | Shift + right editor edge |
+| Right sidebar | Collapses on activation |
+
+### Companion Plugins
+
+For toggling sidebars with shortcuts or mouse movements, check out these companion plugins:
+- **[Obsidian Easy Toggle Sidebars](https://github.com/3C0D/obsidian-easy-toggle-sidebars)**: Easily toggle left and right sidebars using modifier keys and mouse movement.
+- **[Obsidian Gesture Commander](https://github.com/3C0D/obsidian-gesture-commander)**: Trigger sidebar toggles and other actions by mapping commands to custom mouse gestures.
 
 ### Settings
 

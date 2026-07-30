@@ -20,7 +20,7 @@ export const TOGGLE_ITEMS: ToggleItem[] = [
 	{
 		key: 'hideRightSidebar',
 		label: 'Right sidebar',
-		desc: 'Shift + hover right edge to toggle'
+		desc: 'Auto-closes when leaving the sidebar area'
 	},
 	{
 		key: 'hideRibbon',
@@ -44,7 +44,6 @@ export const RIBBON_SELECTOR = '.workspace-ribbon.side-dock-ribbon.mod-left';
 export const STATUS_BAR_SELECTOR = '.status-bar';
 export const LEFT_SIDEBAR_SELECTOR = '.workspace-sidedock.mod-left';
 export const LEFT_TOGGLE_BTN_SELECTOR = '.sidebar-toggle-button.mod-left';
-export const RIGHT_SIDEBAR_SELECTOR = '.mod-right-split';
 
 export const DEFAULT_SETTINGS: EFSSettings = {
 	modeAtStart: true,
