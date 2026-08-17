@@ -2,32 +2,32 @@ import type { EFSSettings, ToggleItem } from './types.ts';
 
 /** Configuration items for the settings modal. */
 export const TOGGLE_ITEMS: ToggleItem[] = [
-	{
-		key: 'hideTopBar',
-		label: 'Top bar',
-		desc: 'Title bar + tab strip'
-	},
-	{
-		key: 'hideViewHeader',
-		label: 'View header',
-		desc: 'File title bar inside the editor pane'
-	},
-	{
-		key: 'hideLeftSidebar',
-		label: 'Left sidebar',
-		desc: 'Toggles on ribbon hover, closes on editor return'
-	},
-	{
-		key: 'hideRightSidebar',
-		label: 'Right sidebar',
-		desc: 'Auto-closes when leaving the sidebar area'
-	},
-	{
-		key: 'hideRibbon',
-		label: 'Ribbon',
-		desc: 'Left icon ribbon (auto-enabled with left sidebar)'
-	},
-	{ key: 'hideStatusBar', label: 'Status bar', desc: 'Bottom status bar' }
+  {
+    key: 'hideTopBar',
+    label: 'Top bar',
+    desc: 'Title bar + tab strip'
+  },
+  {
+    key: 'hideViewHeader',
+    label: 'View header',
+    desc: 'File title bar inside the editor pane'
+  },
+  {
+    key: 'hideLeftSidebar',
+    label: 'Left sidebar',
+    desc: 'Toggles on ribbon hover, closes on editor return'
+  },
+  {
+    key: 'hideRightSidebar',
+    label: 'Right sidebar',
+    desc: 'Auto-closes when leaving the sidebar area'
+  },
+  {
+    key: 'hideRibbon',
+    label: 'Ribbon',
+    desc: 'Left icon ribbon (auto-enabled with left sidebar)'
+  },
+  { key: 'hideStatusBar', label: 'Status bar', desc: 'Bottom status bar' }
 ];
 
 /**
@@ -38,7 +38,7 @@ export const TOGGLE_ITEMS: ToggleItem[] = [
 export const VIEW_HEADER_SELECTOR = '.mod-root .workspace-leaf-content > .view-header';
 
 export const TAB_HEADER_SELECTOR =
-	'.mod-root .workspace-tabs .workspace-tab-header-container';
+  '.mod-root .workspace-tabs .workspace-tab-header-container';
 
 export const RIBBON_SELECTOR = '.workspace-ribbon.side-dock-ribbon.mod-left';
 export const STATUS_BAR_SELECTOR = '.status-bar';
@@ -46,12 +46,12 @@ export const LEFT_SIDEBAR_SELECTOR = '.workspace-sidedock.mod-left';
 export const LEFT_TOGGLE_BTN_SELECTOR = '.sidebar-toggle-button.mod-left';
 
 export const DEFAULT_SETTINGS: EFSSettings = {
-	modeAtStart: true,
-	lastFullScreen: false,
-	hideRibbon: true,
-	hideTopBar: true,
-	hideViewHeader: false,
-	hideStatusBar: true,
-	hideLeftSidebar: false,
-	hideRightSidebar: false
+  modeAtStart: true,
+  lastFullScreen: false,
+  hideRibbon: true,
+  hideTopBar: true,
+  hideViewHeader: false,
+  hideStatusBar: true,
+  hideLeftSidebar: false,
+  hideRightSidebar: false
 };

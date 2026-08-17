@@ -1,68 +1,64 @@
-import { Menu } from 'obsidian';
+import { Menu, type MenuItem } from 'obsidian';
 import type EditorFullScreen from './main.ts';
 import { EFSModal } from './modal.ts';
-
-/**
- * Shared menu key for reading mode context menu.
- * Multiple plugins can add items to the same menu using this convention.
- */
-const SHARED_READING_MENU_KEY = '_sharedReadingMenu';
+import { SHARED_READING_MENU_KEY } from './types.ts';
+import type { MenuItemWithSubmenu, SharedMenuWindow } from './types.ts';
 
 /**
  * Registers all context menus for the plugin.
  * Handles both editor context menu and reading mode context menu.
  */
 export function registerMenus(plugin: EditorFullScreen): void {
-	// Editor context menu (right-click in edit mode)
-	plugin.registerEvent(
-		plugin.app.workspace.on('editor-menu', (menu: Menu) => {
-			addEditorMenuItems(plugin, menu);
-		})
-	);
+  // Editor context menu (right-click in edit mode)
+  plugin.registerEvent(
+    plugin.app.workspace.on('editor-menu', (menu: Menu) => {
+      addEditorMenuItems(plugin, menu);
+    })
+  );
 
-	// Reading mode context menu (right-click in reading mode)
-	// Uses shared menu pattern to allow multiple plugins to add items
-	plugin.app.workspace.onLayoutReady(() => {
-		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest('.markdown-reading-view')) return;
-			if (window.getSelection()?.toString()) return;
+  // Reading mode context menu (right-click in reading mode)
+  // Uses shared menu pattern to allow multiple plugins to add items
+  plugin.app.workspace.onLayoutReady(() => {
+    plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.markdown-reading-view')) return;
+      if (window.getSelection()?.toString()) return;
 
-			e.preventDefault();
-			const w = window as any;
+      e.preventDefault();
+      const w = window as SharedMenuWindow;
 
-			if (w[SHARED_READING_MENU_KEY]) {
-				addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
-				return;
-			}
+      if (w[SHARED_READING_MENU_KEY]) {
+        addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
+        return;
+      }
 
-			w[SHARED_READING_MENU_KEY] = new Menu();
-			setTimeout(() => {
-				const menu = w[SHARED_READING_MENU_KEY];
-				delete w[SHARED_READING_MENU_KEY];
-				menu.showAtMouseEvent(e);
-			}, 0);
+      const sharedMenu = new Menu();
+      w[SHARED_READING_MENU_KEY] = sharedMenu;
+      setTimeout(() => {
+        delete w[SHARED_READING_MENU_KEY];
+        sharedMenu.showAtMouseEvent(e);
+      }, 0);
 
-			addReadingModeMenuItems(plugin, w[SHARED_READING_MENU_KEY]);
-		});
-	});
+      addReadingModeMenuItems(plugin, sharedMenu);
+    });
+  });
 
-	// Non-editor views context menu (canvas, graph, etc.)
-	// Shows menu only for specific content views
-	plugin.app.workspace.onLayoutReady(() => {
-		plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (target.closest('.markdown-reading-view')) return;
-			if (target.closest('.cm-editor')) return;
+  // Non-editor views context menu (canvas, graph, etc.)
+  // Shows menu only for specific content views
+  plugin.app.workspace.onLayoutReady(() => {
+    plugin.registerDomEvent(document, 'contextmenu', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.markdown-reading-view')) return;
+      if (target.closest('.cm-editor')) return;
 
-			// Only show in workspace split (main editor area)
-			if (!target.closest('.workspace-split.mod-vertical.mod-root')) return;
+      // Only show in workspace split (main editor area)
+      if (!target.closest('.workspace-split.mod-vertical.mod-root')) return;
 
-			const menu = new Menu();
-			addReadingModeMenuItems(plugin, menu);
-			menu.showAtPosition({ x: e.clientX - 240, y: e.clientY });
-		});
-	});
+      const menu = new Menu();
+      addReadingModeMenuItems(plugin, menu);
+      menu.showAtPosition({ x: e.clientX - 240, y: e.clientY });
+    });
+  });
 }
 
 /**
@@ -70,23 +66,23 @@ export function registerMenus(plugin: EditorFullScreen): void {
  * Provides toggle full screen and settings options.
  */
 export function addEditorMenuItems(plugin: EditorFullScreen, menu: Menu): void {
-	menu.addItem((item) => {
-		item.setTitle('Full screen').setIcon('expand');
+  menu.addItem((item) => {
+    item.setTitle('Full screen').setIcon('expand');
 
-		const sub = (item as any).setSubmenu();
-		sub.addItem((i: any) =>
-			i
-				.setTitle('Toggle')
-				.setIcon('expand')
-				.onClick(() => plugin.toggleMode())
-		);
-		sub.addItem((i: any) =>
-			i
-				.setTitle('Settings')
-				.setIcon('layout')
-				.onClick(() => new EFSModal(plugin.app, plugin).open())
-		);
-	});
+    const sub = (item as MenuItemWithSubmenu).setSubmenu();
+    sub.addItem((i: MenuItem) =>
+      i
+        .setTitle('Toggle')
+        .setIcon('expand')
+        .onClick(() => plugin.toggleMode())
+    );
+    sub.addItem((i: MenuItem) =>
+      i
+        .setTitle('Settings')
+        .setIcon('layout')
+        .onClick(() => new EFSModal(plugin.app, plugin).open())
+    );
+  });
 }
 
 /**
@@ -95,16 +91,16 @@ export function addEditorMenuItems(plugin: EditorFullScreen, menu: Menu): void {
  * in reading mode without text selection.
  */
 export function addReadingModeMenuItems(plugin: EditorFullScreen, menu: Menu): void {
-	menu.addItem((item) =>
-		item
-			.setTitle('Toggle full screen')
-			.setIcon('expand')
-			.onClick(() => plugin.toggleMode())
-	);
-	menu.addItem((item) =>
-		item
-			.setTitle('Configure hidden elements')
-			.setIcon('layout')
-			.onClick(() => new EFSModal(plugin.app, plugin).open())
-	);
+  menu.addItem((item) =>
+    item
+      .setTitle('Toggle full screen')
+      .setIcon('expand')
+      .onClick(() => plugin.toggleMode())
+  );
+  menu.addItem((item) =>
+    item
+      .setTitle('Configure hidden elements')
+      .setIcon('layout')
+      .onClick(() => new EFSModal(plugin.app, plugin).open())
+  );
 }
