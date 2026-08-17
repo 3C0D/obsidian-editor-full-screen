@@ -54,6 +54,12 @@ export class HoverDetector {
 	private sidebarListenersAttached = false;
 	private sidebarCleanups: Array<() => void> = [];
 
+	// Whether an Obsidian context menu (.menu) is currently open.
+	// While true, mouseleave on sidebars is suppressed.
+	private menuOpen = false;
+
+	private menuObserver: MutationObserver | null = null;
+
 	// Currently revealed tab headers (managed via CSS class)
 	private revealedTabHeaders = new Set<HTMLElement>();
 
@@ -73,6 +79,7 @@ export class HoverDetector {
 		this.addDocument(document);
 		this.createSentinels();
 		this.attachSidebarListeners();
+		this.startMenuObserver();
 	}
 
 	/**
@@ -83,6 +90,7 @@ export class HoverDetector {
 		this.trackedDocs.clear();
 		this.removeSentinels();
 		this.detachSidebarListeners();
+		this.stopMenuObserver();
 		if (this.sidebarHideTimer) {
 			clearTimeout(this.sidebarHideTimer);
 			this.sidebarHideTimer = null;
@@ -556,6 +564,9 @@ export class HoverDetector {
 	}
 
 	private scheduleHide(fn: () => void): void {
+		// While a context menu is open, do not schedule sidebar hide.
+		// The menu observer will retrigger evaluation once the menu closes.
+		if (this.menuOpen) return;
 		if (this.sidebarHideTimer) clearTimeout(this.sidebarHideTimer);
 		this.sidebarHideTimer = setTimeout(fn, 200);
 	}
@@ -578,11 +589,14 @@ export class HoverDetector {
 		const leftEl = document.querySelector('.mod-left-split') as HTMLElement | null;
 		const ribbonEl = document.querySelector(RIBBON_SELECTOR) as HTMLElement | null;
 
-		const onLeftLeave = (): void =>
+		const onLeftLeave = (): void => {
+			// If a context menu is open, keep the sidebar visible.
+			if (this.menuOpen) return;
 			this.scheduleHide(() => {
 				this.hideSide(Side.left);
 				this.clearRevealedHeaders();
 			});
+		};
 
 		if (leftEl) {
 			leftEl.addEventListener('mouseleave', onLeftLeave);
@@ -604,12 +618,15 @@ export class HoverDetector {
 		// Right sidebar: auto-close on mouseleave (no mouseenter cancel needed)
 		const rightEl = document.querySelector('.mod-right-split') as HTMLElement | null;
 		if (rightEl) {
-			const onRightLeave = (): void =>
+			const onRightLeave = (): void => {
+				// If a context menu is open, keep the sidebar visible.
+				if (this.menuOpen) return;
 				this.scheduleHide(() => {
 					if (this.rightSidebarEnabled) {
 						this.onSideHide?.(Side.right);
 					}
 				});
+			};
 			const onRightEnter = cancel;
 			rightEl.addEventListener('mouseleave', onRightLeave);
 			rightEl.addEventListener('mouseenter', onRightEnter);
@@ -635,6 +652,33 @@ export class HoverDetector {
 		this.sidebarCleanups.forEach((cleanup) => cleanup());
 		this.sidebarCleanups = [];
 		this.sidebarListenersAttached = false;
+	}
+
+	/**
+	 * Observes the DOM for Obsidian context menus (.menu).
+	 * Sets menuOpen=true when one appears, false when all are gone.
+	 * While true, mouseleave on sidebars is suppressed so the sidebar
+	 * stays visible while the user interacts with the context menu.
+	 */
+	private startMenuObserver(): void {
+		if (this.menuObserver) return;
+
+		this.menuObserver = new MutationObserver(() => {
+			const menuNowOpen = !!document.querySelector('.menu');
+			if (menuNowOpen && !this.menuOpen) {
+				this.menuOpen = true;
+			} else if (!menuNowOpen && this.menuOpen) {
+				this.menuOpen = false;
+			}
+		});
+
+		this.menuObserver.observe(document.body, { childList: true, subtree: true });
+	}
+
+	private stopMenuObserver(): void {
+		this.menuObserver?.disconnect();
+		this.menuObserver = null;
+		this.menuOpen = false;
 	}
 
 	/** Clears all revealed tab headers. */
