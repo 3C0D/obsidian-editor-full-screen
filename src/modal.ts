@@ -1,7 +1,7 @@
-import type { App, ToggleComponent } from 'obsidian';
+import type { App } from 'obsidian';
 import { Modal, Setting } from 'obsidian';
 import type { EditorFullScreenPlugin } from './types.ts';
-import { TOGGLE_ITEMS } from './constants.ts';
+import { renderToggleItems } from './toggleItemsRenderer.ts';
 
 /**
  * Modal for configuring which elements to hide in full screen mode.
@@ -19,34 +19,11 @@ export class EFSModal extends Modal {
   }
 
   private render(): void {
-    let ribbonToggle: ToggleComponent | null = null;
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl('h2', { text: 'Full Screen — Elements' });
 
-    TOGGLE_ITEMS.forEach(({ key, label, desc }) => {
-      new Setting(contentEl)
-        .setName(label)
-        .setDesc(desc)
-        .addToggle((toggle) => {
-          if (key === 'hideRibbon') ribbonToggle = toggle;
-          toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
-            this.plugin.settings[key] = value;
-
-            // Enabling hide left sidebar forces hide ribbon on
-            if (key === 'hideLeftSidebar' && value) {
-              this.plugin.settings.hideRibbon = true;
-              ribbonToggle?.setValue(true);
-            }
-
-            await this.plugin.saveSettings();
-
-            if (this.plugin.isFullScreen) {
-              this.plugin.reapplyMode();
-            }
-          });
-        });
-    });
+    renderToggleItems(contentEl, this.plugin);
 
     new Setting(contentEl).addButton((btn) =>
       btn

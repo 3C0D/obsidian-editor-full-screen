@@ -1,7 +1,7 @@
-import type { App, ToggleComponent } from 'obsidian';
+import type { App } from 'obsidian';
 import { PluginSettingTab, Setting } from 'obsidian';
 import type { EditorFullScreenPlugin } from './types.ts';
-import { TOGGLE_ITEMS } from './constants.ts';
+import { renderToggleItems } from './toggleItemsRenderer.ts';
 
 export class EFSSettingTab extends PluginSettingTab {
   plugin: EditorFullScreenPlugin;
@@ -12,7 +12,6 @@ export class EFSSettingTab extends PluginSettingTab {
   }
 
   display(): void {
-    let ribbonToggle: ToggleComponent | null = null;
     const { containerEl } = this;
     containerEl.empty();
 
@@ -30,26 +29,6 @@ export class EFSSettingTab extends PluginSettingTab {
 
     containerEl.createEl('h3', { text: 'Elements to hide' });
 
-    TOGGLE_ITEMS.forEach(({ key, label, desc }) => {
-      new Setting(containerEl)
-        .setName(label)
-        .setDesc(desc)
-        .addToggle((toggle) => {
-          if (key === 'hideRibbon') ribbonToggle = toggle;
-          toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
-            this.plugin.settings[key] = value;
-            if (key === 'hideLeftSidebar' && value) {
-              // Also hide the ribbon
-              this.plugin.settings.hideRibbon = true;
-              ribbonToggle?.setValue(true);
-            }
-            await this.plugin.saveSettings();
-
-            if (this.plugin.isFullScreen) {
-              this.plugin.reapplyMode();
-            }
-          });
-        });
-    });
+    renderToggleItems(containerEl, this.plugin);
   }
 }

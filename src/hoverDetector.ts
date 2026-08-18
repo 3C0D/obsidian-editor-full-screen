@@ -21,14 +21,11 @@ const EDGE_HIDE_PAD = 25;
 
 /**
  * Detects cursor proximity to viewport edges and manages revealing/hiding of UI elements accordingly.
- *
- * @param manager - The ElementManager instance to control element visibility and get positions.
  */
 export class HoverDetector {
-  // Tracks which sides currently have their elements shown.
-  // Used for elements managed by elementManager (left, top, bottom).
-  // Note: Right sidebar is NOT in elementManager's activeKeys, so we track
-  // its open state separately via rightSidebarOpen below.
+  // Tracks which sides (left, top, bottom) currently have their elements revealed.
+  // The right sidebar is not tracked here: its open/closed state is delegated
+  // directly to main.ts via the onSideReveal/onSideHide callbacks.
   private shownSides = new Set<Side>();
 
   // Callbacks to notify plugin when sides are revealed/hidden
@@ -46,9 +43,6 @@ export class HoverDetector {
   leftSidebarEnabled = false;
   rightSidebarEnabled = false;
 
-  // Currently revealed view-headers (managed via CSS class)
-  private revealedHeaders = new Set<HTMLElement>();
-
   // Timer for delayed sidebar hide (prevents false triggers on tree resize)
   private sidebarHideTimer: ReturnType<typeof setTimeout> | null = null;
   private sidebarListenersAttached = false;
@@ -60,12 +54,10 @@ export class HoverDetector {
 
   private menuObserver: MutationObserver | null = null;
 
-  // Currently revealed tab headers (managed via CSS class)
-  private revealedTabHeaders = new Set<HTMLElement>();
-
-  // Sentinel elements for catching fast mouse entries
-  private sentinelTop: HTMLDivElement | null = null;
-  private sentinelBottom: HTMLDivElement | null = null;
+  // Sentinel elements for catching fast mouse entries, one pair per tracked document
+  // (main window + each popout). Each frameless window has its own top drag-region
+  // dead zone where native mousemove never reaches the DOM without an overlay.
+  private sentinels = new Map<Document, { top: HTMLDivElement; bottom: HTMLDivElement }>();
 
   // Tracked documents (main + popout windows)
   private trackedDocs = new Set<Document>();
@@ -77,7 +69,6 @@ export class HoverDetector {
    */
   start(): void {
     this.addDocument(document);
-    this.createSentinels();
     this.attachSidebarListeners();
     this.startMenuObserver();
   }
@@ -86,9 +77,10 @@ export class HoverDetector {
    * Stops hover detection on all documents.
    */
   stop(): void {
+    this.clearAllRevealed();
     this.trackedDocs.forEach((doc) => this.detachListeners(doc));
     this.trackedDocs.clear();
-    this.removeSentinels();
+    this.removeAllSentinels();
     this.detachSidebarListeners();
     this.stopMenuObserver();
     if (this.sidebarHideTimer) {
@@ -96,8 +88,6 @@ export class HoverDetector {
       this.sidebarHideTimer = null;
     }
     this.shownSides.clear();
-    this.clearRevealedHeaders();
-    this.clearRevealedTabHeaders();
   }
 
   /** Registers an additional document (popout window) so hover detection works across all open windows. */
@@ -105,12 +95,14 @@ export class HoverDetector {
     if (this.trackedDocs.has(doc)) return;
     this.trackedDocs.add(doc);
     this.attachListeners(doc);
+    this.createSentinelsForDoc(doc);
   }
 
   /** Unregisters a popout document. */
   removeDocument(doc: Document): void {
     this.detachListeners(doc);
     this.trackedDocs.delete(doc);
+    this.removeSentinelsForDoc(doc);
   }
 
   private attachListeners(doc: Document): void {
@@ -134,17 +126,17 @@ export class HoverDetector {
   }
 
   /**
-   * Creates sentinel elements at viewport edges to detect fast mouse entries that mousemove might miss.
-   * Thin transparent strips pinned to viewport edges.
-   *
-   * When the cursor moves very quickly from outside the window toward the top edge,
-   * the mousemove event may not fire in time to detect the entry. The sentinel acts as a
-   * safety net: the cursor can jump from outside the window straight into the sentinel
-   * strip before any mousemove event reaches the document handler.
+   * Creates the top/bottom sentinel strips for one document.
+   * In a frameless window, the hidden top bar sits over the native OS drag
+   * region, which swallows mousemove before it reaches the DOM. The sentinel
+   * is a plain, non-drag element pinned over that region, so entering it
+   * always fires a real mouseenter event, in every tracked window.
    */
-  private createSentinels(): void {
-    this.sentinelTop = document.createElement('div');
-    Object.assign(this.sentinelTop.style, {
+  private createSentinelsForDoc(doc: Document): void {
+    if (this.sentinels.has(doc)) return;
+
+    const top = doc.createElement('div');
+    Object.assign(top.style, {
       position: 'fixed',
       top: '0',
       left: '0',
@@ -154,13 +146,13 @@ export class HoverDetector {
       pointerEvents: 'all',
       opacity: '0'
     });
-    this.sentinelTop.addEventListener('mouseenter', () => {
-      if (this.topBarEnabled) this.revealSide(Side.top);
+    top.addEventListener('mouseenter', () => {
+      if (this.topBarEnabled) this.revealSide(Side.top, doc);
     });
-    document.body.appendChild(this.sentinelTop);
+    doc.body.appendChild(top);
 
-    this.sentinelBottom = document.createElement('div');
-    Object.assign(this.sentinelBottom.style, {
+    const bottom = doc.createElement('div');
+    Object.assign(bottom.style, {
       position: 'fixed',
       bottom: '0',
       right: '0',
@@ -170,28 +162,34 @@ export class HoverDetector {
       pointerEvents: 'all',
       opacity: '0'
     });
-    this.sentinelBottom.addEventListener('mouseenter', () => {
+    bottom.addEventListener('mouseenter', () => {
       if (this.statusBarEnabled) {
-        const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
+        const sb = doc.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
         if (sb) {
           const rect = sb.getBoundingClientRect();
-          if (rect.width > 0) this.sentinelBottom!.style.width = `${rect.width}px`;
-          if (rect.height > 0) this.sentinelBottom!.style.height = `${rect.height}px`;
+          if (rect.width > 0) bottom.style.width = `${rect.width}px`;
+          if (rect.height > 0) bottom.style.height = `${rect.height}px`;
         }
-        this.revealSide(Side.bottom);
+        this.revealSide(Side.bottom, doc);
       }
     });
-    document.body.appendChild(this.sentinelBottom);
+    doc.body.appendChild(bottom);
+
+    this.sentinels.set(doc, { top, bottom });
   }
 
-  /**
-   * Removes sentinel elements from the DOM and cleans up references.
-   */
-  private removeSentinels(): void {
-    this.sentinelTop?.remove();
-    this.sentinelTop = null;
-    this.sentinelBottom?.remove();
-    this.sentinelBottom = null;
+  /** Removes the sentinel pair for one document. */
+  private removeSentinelsForDoc(doc: Document): void {
+    const pair = this.sentinels.get(doc);
+    if (!pair) return;
+    pair.top.remove();
+    pair.bottom.remove();
+    this.sentinels.delete(doc);
+  }
+
+  /** Removes sentinel elements from every tracked document. */
+  private removeAllSentinels(): void {
+    this.sentinels.forEach((_pair, doc) => this.removeSentinelsForDoc(doc));
   }
 
   /**
@@ -228,43 +226,40 @@ export class HoverDetector {
 
   /**
    * Checks if the cursor is near viewport edges to reveal corresponding sides.
-   * Evaluates left, top, bottom edges, right sidebar (with Shift), and position-based elements.
-   * @param e - The mouse event containing cursor position.
    */
   private checkReveal(e: MouseEvent): void {
-    const isMainDoc = (e.target as Node)?.ownerDocument === document;
+    const evtDoc = (e.target as Node)?.ownerDocument ?? document;
+    const isMainDoc = evtDoc === document;
 
     // Left sidebar: only trigger from main window
     if (isMainDoc && (this.ribbonEnabled || this.leftSidebarEnabled)) {
-      const ribbonEl = document.querySelector(RIBBON_SELECTOR) as HTMLElement | null;
+      const ribbonEl = evtDoc.querySelector(RIBBON_SELECTOR) as HTMLElement | null;
       const triggerWidth = ribbonEl
         ? Math.min(ribbonEl.getBoundingClientRect().width, LEFT_TRIGGER_MAX)
         : LEFT_TRIGGER_MAX;
-      if (e.clientX <= triggerWidth) this.revealSide(Side.left);
+      if (e.clientX <= triggerWidth) this.revealSide(Side.left, evtDoc);
     }
 
-    // Top: generous threshold handles fast upward swipes (per-window)
-    const evtDoc = (e.target as Node)?.ownerDocument ?? document;
-    if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled)
+    // Top: handles upward swipe in any tracked window
+    if (e.clientY <= EDGE_THRESHOLD && this.topBarEnabled) {
       this.revealSide(Side.top, evtDoc);
+    }
   }
 
   /**
-   * Checks if the cursor has moved outside currently shown sides to hide them,
-   * or if it has returned to the editor area to hide sidebars.
-   * @param e - The mouse event containing cursor position.
+   * Checks if the cursor has moved outside currently shown sides to hide them.
    */
   private checkHide(e: MouseEvent): void {
+    const evtDoc = (e.target as Node)?.ownerDocument ?? document;
     this.shownSides.forEach((side) => {
-      if (this.isOutside(e, side)) {
-        this.hideSide(side);
+      if (this.isOutside(e, side, evtDoc)) {
+        this.hideSide(side, evtDoc);
       }
     });
   }
 
   /**
    * Updates the left toggle button visibility based on currently shown sides.
-   * Shows the button if left or top side is revealed, hides it otherwise.
    */
   private updateToggleBtn(doc: Document = document): void {
     const btns = doc.querySelectorAll(LEFT_TOGGLE_BTN_SELECTOR);
@@ -276,9 +271,7 @@ export class HoverDetector {
   }
 
   /**
-   * Reveals the element(s) for a given side and triggers the reveal callback.
-   * Avoids redundant operations if the side is already shown.
-   * @param side - The side to reveal (left, top, bottom, or right).
+   * Reveals the element(s) for a given side.
    */
   private revealSide(side: Side, doc: Document = document): void {
     if (!this.shownSides.has(side)) {
@@ -291,16 +284,20 @@ export class HoverDetector {
             .forEach((el) => el.classList.add('efs-revealed'));
           this.updateToggleBtn(doc);
           break;
-        case Side.top:
-          if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'none';
+        case Side.top: {
+          const topSentinel = this.sentinels.get(doc)?.top;
+          if (topSentinel) topSentinel.style.pointerEvents = 'none';
           this.updateToggleBtn(doc);
           break;
-        case Side.bottom:
-          if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'none';
+        }
+        case Side.bottom: {
+          const bottomSentinel = this.sentinels.get(doc)?.bottom;
+          if (bottomSentinel) bottomSentinel.style.pointerEvents = 'none';
           doc
             .querySelectorAll(STATUS_BAR_SELECTOR)
             .forEach((el) => el.classList.add('efs-revealed'));
           break;
+        }
       }
 
       this.onSideReveal?.(side);
@@ -318,16 +315,20 @@ export class HoverDetector {
             .forEach((el) => el.classList.remove('efs-revealed'));
           this.updateToggleBtn(doc);
           break;
-        case Side.top:
-          if (this.sentinelTop) this.sentinelTop.style.pointerEvents = 'all';
+        case Side.top: {
+          const topSentinel = this.sentinels.get(doc)?.top;
+          if (topSentinel) topSentinel.style.pointerEvents = 'all';
           this.updateToggleBtn(doc);
           break;
-        case Side.bottom:
-          if (this.sentinelBottom) this.sentinelBottom.style.pointerEvents = 'all';
+        }
+        case Side.bottom: {
+          const bottomSentinel = this.sentinels.get(doc)?.bottom;
+          if (bottomSentinel) bottomSentinel.style.pointerEvents = 'all';
           doc
             .querySelectorAll(STATUS_BAR_SELECTOR)
             .forEach((el) => el.classList.remove('efs-revealed'));
           break;
+        }
       }
 
       this.onSideHide?.(side);
@@ -336,33 +337,28 @@ export class HoverDetector {
 
   /**
    * Determines if the cursor has moved outside the bounds of a given side's element area.
-   * @param e - The mouse event containing cursor position.
-   * @param side - The side to check against.
-   * @returns True if the cursor is outside the side's bounds (considering padding), false otherwise.
    */
-  private isOutside(e: MouseEvent, side: Side): boolean {
+  private isOutside(e: MouseEvent, side: Side, doc: Document = document): boolean {
     switch (side) {
       case Side.left:
       case Side.right:
         return false;
       case Side.top:
         let topBottom = 0;
-        const btn = document.querySelector(
-          LEFT_TOGGLE_BTN_SELECTOR
-        ) as HTMLElement | null;
+        const btn = doc.querySelector(LEFT_TOGGLE_BTN_SELECTOR) as HTMLElement | null;
         if (btn) topBottom = btn.getBoundingClientRect().bottom;
-        // Extend exit zone to include revealed view-headers
-        if (this.viewHeaderEnabled) {
-          for (const h of this.revealedHeaders) {
-            const hb = h.getBoundingClientRect();
-            if (hb.bottom > topBottom) topBottom = hb.bottom;
-          }
-        }
+        // Extend exit zone to include revealed elements in this document
+        doc.querySelectorAll<HTMLElement>(
+          '.view-header.efs-revealed, .workspace-tab-header-container.efs-revealed, .titlebar.efs-revealed'
+        ).forEach((el) => {
+          const b = el.getBoundingClientRect();
+          if (b.bottom > topBottom) topBottom = b.bottom;
+        });
         return e.clientY > topBottom + EDGE_HIDE_PAD;
 
       case Side.bottom:
-        let bottomTop = window.innerHeight;
-        const sb = document.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
+        let bottomTop = doc.defaultView?.innerHeight ?? window.innerHeight;
+        const sb = doc.querySelector(STATUS_BAR_SELECTOR) as HTMLElement | null;
         if (sb && this.statusBarEnabled) bottomTop = sb.getBoundingClientRect().top;
         const padBottom = 30;
         return e.clientY < bottomTop - padBottom;
@@ -372,17 +368,12 @@ export class HoverDetector {
   }
 
   /**
-   * Checks all view-headers across every split pane.
-   * Uses the parent .workspace-leaf-content position
-   * (always in layout) to detect cursor proximity,
-   * then toggles .efs-revealed on individual headers.
+   * Checks all view-headers in the target window.
    */
   private checkViewHeaderReveal(e: MouseEvent): void {
-    const headers = this.queryAllDocs<HTMLElement>(VIEW_HEADER_SELECTOR);
-
-    const nowRevealed = new Set<HTMLElement>();
-    const topShown = this.shownSides.has(Side.top);
     const evtDoc = (e.target as Node)?.ownerDocument ?? document;
+    const headers = evtDoc.querySelectorAll<HTMLElement>(VIEW_HEADER_SELECTOR);
+    const topShown = this.shownSides.has(Side.top);
 
     headers.forEach((header) => {
       const parent = header.closest('.workspace-leaf-content') as HTMLElement | null;
@@ -395,20 +386,13 @@ export class HoverDetector {
       const adjacent = tabEl
         ? tabEl.getBoundingClientRect().top < EDGE_THRESHOLD
         : pr.top < EDGE_THRESHOLD * 2;
-      const sameDoc = header.ownerDocument === evtDoc;
 
-      const nearHeader =
-        sameDoc && inX && e.clientY >= pr.top && e.clientY <= pr.top + EDGE_THRESHOLD;
+      const nearHeader = inX && e.clientY >= pr.top && e.clientY <= pr.top + EDGE_THRESHOLD;
+      const linkedReveal = topShown && adjacent && inX && e.clientY <= pr.top + EDGE_THRESHOLD;
 
-      // Linked: top bar shown + adjacent + same window
-      const linkedReveal =
-        sameDoc && topShown && adjacent && inX && e.clientY <= pr.top + EDGE_THRESHOLD;
-
-      // Reverse group link: cursor is near the tab
-      // header of the same group
       const group = header.closest('.workspace-tabs');
       let cursorNearGroupTab = false;
-      if (group && sameDoc) {
+      if (group) {
         const tab = group.querySelector(TAB_HEADER_SELECTOR) as HTMLElement | null;
         if (tab) {
           const tr = tab.getBoundingClientRect();
@@ -423,114 +407,82 @@ export class HoverDetector {
         }
       }
 
-      // Keep header revealed while topBar is shown and cursor hasn't crossed exit threshold
-      const keepLinked = sameDoc && adjacent && topShown && !this.isOutside(e, Side.top);
-
-      // Keep header revealed for EDGE_HIDE_PAD px below its bottom (standalone exit margin)
+      const keepLinked = adjacent && topShown && !this.isOutside(e, Side.top, evtDoc);
       const hRect = header.getBoundingClientRect();
       const keepRevealed =
-        sameDoc &&
         inX &&
-        this.revealedHeaders.has(header) &&
+        header.classList.contains('efs-revealed') &&
         e.clientY <= hRect.bottom + EDGE_HIDE_PAD;
 
-      if (
-        nearHeader ||
-        linkedReveal ||
-        cursorNearGroupTab ||
-        keepLinked ||
-        keepRevealed
-      ) {
+      if (nearHeader || linkedReveal || cursorNearGroupTab || keepLinked || keepRevealed) {
         header.classList.add('efs-revealed');
-        nowRevealed.add(header);
-        if (adjacent && sameDoc && this.topBarEnabled) {
+        if (adjacent && this.topBarEnabled) {
           this.revealSide(Side.top, evtDoc);
         }
+      } else {
+        header.classList.remove('efs-revealed');
       }
     });
-
-    // Remove reveal from headers no longer hovered
-    this.revealedHeaders.forEach((h) => {
-      if (!nowRevealed.has(h)) {
-        h.classList.remove('efs-revealed');
-      }
-    });
-    this.revealedHeaders = nowRevealed;
   }
 
   /**
-   * Checks all tab header containers.
-   * Reveals them by proximity or when their group's
-   * view-header is already revealed.
+   * Checks all tab header containers and titlebars in the target window.
    */
   private checkTabHeaderReveal(e: MouseEvent): void {
-    const tabs = this.queryAllDocs<HTMLElement>(TAB_HEADER_SELECTOR);
-
-    const nowRevealed = new Set<HTMLElement>();
-    const topShown = this.shownSides.has(Side.top);
     const evtDoc = (e.target as Node)?.ownerDocument ?? document;
+    const tabs = evtDoc.querySelectorAll<HTMLElement>(TAB_HEADER_SELECTOR);
+    const topShown = this.shownSides.has(Side.top);
+    let anyTabRevealed = false;
 
     tabs.forEach((tab) => {
       const tr = tab.getBoundingClientRect();
       const inX = e.clientX >= tr.left && e.clientX <= tr.right;
       const adjacent = tr.top < EDGE_THRESHOLD * 2;
-      const sameDoc = tab.ownerDocument === evtDoc;
 
-      const nearTab =
-        sameDoc && inX && e.clientY >= tr.top && e.clientY <= tr.bottom + EDGE_THRESHOLD;
-
-      // Link only within same window
-      const linkedTop = sameDoc && topShown && adjacent && inX;
+      const nearTab = inX && e.clientY >= tr.top && e.clientY <= tr.bottom + EDGE_THRESHOLD;
+      const linkedTop = topShown && adjacent && inX;
 
       const group = tab.closest('.workspace-tabs');
       const groupLinked =
         group !== null &&
-        [...this.revealedHeaders].some((h) => h.closest('.workspace-tabs') === group);
+        Array.from(group.querySelectorAll<HTMLElement>('.view-header')).some((h) =>
+          h.classList.contains('efs-revealed')
+        );
 
       if (nearTab || linkedTop || groupLinked) {
         tab.classList.add('efs-revealed');
-        nowRevealed.add(tab);
-        if (adjacent && sameDoc) {
+        anyTabRevealed = true;
+        if (adjacent) {
           this.revealSide(Side.top, evtDoc);
         }
+      } else {
+        tab.classList.remove('efs-revealed');
       }
     });
 
-    // Reveal titlebars only in the event's window
-    const titlebars = this.queryAllDocs<HTMLElement>('.titlebar');
+    // Reveal titlebar in the event's window
+    const titlebars = evtDoc.querySelectorAll<HTMLElement>('.titlebar');
     titlebars.forEach((tb) => {
-      if (tb.ownerDocument !== evtDoc) return;
-      const anyLocal = [...nowRevealed].some((h) => {
-        if (h.ownerDocument !== evtDoc) return false;
-        const r = h.getBoundingClientRect();
-        return r.top < EDGE_THRESHOLD;
-      });
-      if (anyLocal) {
+      const tbRect = tb.getBoundingClientRect();
+      const cursorNearTitlebar =
+        e.clientX >= tbRect.left &&
+        e.clientX <= tbRect.right &&
+        e.clientY >= tbRect.top &&
+        e.clientY <= tbRect.bottom + EDGE_THRESHOLD;
+
+      if (anyTabRevealed || cursorNearTitlebar) {
         tb.classList.add('efs-revealed');
-        nowRevealed.add(tb);
       } else {
         tb.classList.remove('efs-revealed');
       }
     });
 
-    this.revealedTabHeaders.forEach((h) => {
-      if (!nowRevealed.has(h)) {
-        h.classList.remove('efs-revealed');
-      }
-    });
-    this.revealedTabHeaders = nowRevealed;
-
-    // Sentinel: disable when top elements are visible
-    if (this.sentinelTop) {
-      this.sentinelTop.style.pointerEvents =
-        nowRevealed.size > 0 || topShown ? 'none' : 'all';
+    // Sentinel: disable pointer-events for this window's top sentinel while its
+    // top elements are visible, so it stops intercepting clicks meant for them.
+    const topSentinel = this.sentinels.get(evtDoc)?.top;
+    if (topSentinel) {
+      topSentinel.style.pointerEvents = anyTabRevealed || topShown ? 'none' : 'all';
     }
-  }
-
-  /** Clears all revealed view-headers. */
-  private clearRevealedHeaders(): void {
-    this.revealedHeaders.forEach((h) => h.classList.remove('efs-revealed'));
-    this.revealedHeaders.clear();
   }
 
   private scheduleHide(fn: () => void): void {
@@ -564,7 +516,6 @@ export class HoverDetector {
       if (this.menuOpen) return;
       this.scheduleHide(() => {
         this.hideSide(Side.left);
-        this.clearRevealedHeaders();
       });
     };
 
@@ -625,35 +576,43 @@ export class HoverDetector {
   }
 
   /**
-   * Observes the DOM for Obsidian context menus (.menu).
-   * Sets menuOpen=true when one appears, false when all are gone.
-   * While true, mouseleave on sidebars is suppressed so the sidebar
-   * stays visible while the user interacts with the context menu.
+   * Observes the DOM for Obsidian context menus (.menu) and modals (.modal-container).
+   * Sets menuOpen=true when a menu is open, and toggles efs-has-modal on document.body.
    */
   private startMenuObserver(): void {
     if (this.menuObserver) return;
 
-    this.menuObserver = new MutationObserver(() => {
-      const menuNowOpen = !!document.querySelector('.menu');
-      if (menuNowOpen && !this.menuOpen) {
-        this.menuOpen = true;
-      } else if (!menuNowOpen && this.menuOpen) {
-        this.menuOpen = false;
-      }
-    });
+    const updateState = (): void => {
+      this.menuOpen = !!document.querySelector('.menu');
 
+      const hasModal = !!document.querySelector('.modal-container');
+      document.body.classList.toggle('efs-has-modal', hasModal);
+    };
+
+    this.menuObserver = new MutationObserver(updateState);
     this.menuObserver.observe(document.body, { childList: true, subtree: true });
+    updateState();
   }
 
   private stopMenuObserver(): void {
     this.menuObserver?.disconnect();
     this.menuObserver = null;
     this.menuOpen = false;
+    document.body.classList.remove('efs-has-modal');
   }
 
-  /** Clears all revealed tab headers. */
-  private clearRevealedTabHeaders(): void {
-    this.revealedTabHeaders.forEach((h) => h.classList.remove('efs-revealed'));
-    this.revealedTabHeaders.clear();
+  /**
+   * Removes the efs-revealed class from every managed element (view-headers,
+   * tab headers, titlebars) across all tracked documents. Replaces the old
+   * Set-based tracking, which the refactor to per-document classList toggling
+   * left unpopulated.
+   */
+  private clearAllRevealed(): void {
+    const selector = `${VIEW_HEADER_SELECTOR}.efs-revealed, ${TAB_HEADER_SELECTOR}.efs-revealed, .titlebar.efs-revealed`;
+    this.trackedDocs.forEach((doc) => {
+      doc
+        .querySelectorAll<HTMLElement>(selector)
+        .forEach((el) => el.classList.remove('efs-revealed'));
+    });
   }
 }

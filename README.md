@@ -54,8 +54,8 @@ This plugin uses a template that automates the development and publication proce
 src/
   types.ts          — enums, interfaces
   constants.ts      — element configs, default settings
-  elementManager.ts — DOM show/hide logic
-  hoverDetector.ts  — mouse movement + edge detection
+  hoverDetector.ts  — mouse movement + edge detection + reveal/hide logic
+  sidebarUtils.ts   — sidebar collapse/expand helpers
   modal.ts          — quick-settings modal
   menuManager.ts    — context menus (editor + reading mode)
   settings.ts       — PluginSettingTab

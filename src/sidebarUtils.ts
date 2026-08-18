@@ -25,8 +25,8 @@ export function expandSidebar(app: App, side: 'left' | 'right'): void {
 
 /**
  * Updates sidebar visibility based on current settings.
- * Collapses sidebars when the corresponding hide setting is enabled.
- * Only operates when the full screen mode is active.
+ * Collapses sidebars when the corresponding hide setting is enabled,
+ * and expands them otherwise. Only operates when the full screen mode is active.
  */
 export function updateSidebarVisibility(plugin: EditorFullScreenPlugin): void {
   if (!plugin.isFullScreen) {
@@ -35,13 +35,15 @@ export function updateSidebarVisibility(plugin: EditorFullScreenPlugin): void {
 
   const { app, settings } = plugin;
 
-  // Collapse left sidebar if setting is enabled
   if (settings.hideLeftSidebar) {
     collapseSidebar(app, 'left');
+  } else {
+    expandSidebar(app, 'left');
   }
 
-  // Collapse right sidebar if setting is enabled
   if (settings.hideRightSidebar) {
     collapseSidebar(app, 'right');
+  } else {
+    expandSidebar(app, 'right');
   }
 }

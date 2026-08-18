@@ -124,8 +124,6 @@ export default class EditorFullScreen extends Plugin {
     };
 
     // CSS-based toggle sets
-    document.body.classList.add('efs-active');
-
     this.applyBodyClasses();
 
     this.hoverDetector.viewHeaderEnabled = this.settings.hideViewHeader;
@@ -136,9 +134,6 @@ export default class EditorFullScreen extends Plugin {
     this.hoverDetector.rightSidebarEnabled = this.settings.hideRightSidebar;
 
     this.hoverDetector.start();
-
-    // Apply body classes to all windows
-    this.applyBodyClasses();
 
     // Set up existing popout windows
     this.app.workspace.iterateAllLeaves((leaf) => {
@@ -151,15 +146,13 @@ export default class EditorFullScreen extends Plugin {
     // Track future popout windows
     this.registerEvent(
       this.app.workspace.on('window-open', (win: WorkspaceWindow) => {
-        const w = win.getContainer();
-        const doc = (w as unknown as Window)?.document;
+        const doc = win.doc;
         if (doc) this.registerPopout(doc);
       })
     );
     this.registerEvent(
       this.app.workspace.on('window-close', (win: WorkspaceWindow) => {
-        const w = win.getContainer();
-        const doc = (w as unknown as Window)?.document;
+        const doc = win.doc;
         if (doc) this.unregisterPopout(doc);
       })
     );
@@ -198,8 +191,9 @@ export default class EditorFullScreen extends Plugin {
    * Shows all elements first so removed ones become visible again.
    */
   reapplyMode(): void {
-    // Update flags and body classes
+    // Update flags and body classes on the main window and every open popout window
     this.applyBodyClasses();
+    this.popoutDocs.forEach((doc) => this.applyBodyClasses(doc));
 
     this.hoverDetector.viewHeaderEnabled = this.settings.hideViewHeader;
     this.hoverDetector.topBarEnabled = this.settings.hideTopBar;
@@ -215,6 +209,7 @@ export default class EditorFullScreen extends Plugin {
   /** Registers a popout window for full-screen management. */
   private registerPopout(doc: Document): void {
     if (this.popoutDocs.has(doc)) return;
+    if (doc.body?.classList.contains('is-popout-modal')) return;
     this.popoutDocs.add(doc);
     this.applyBodyClasses(doc);
     this.hoverDetector.addDocument(doc);

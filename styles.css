@@ -30,10 +30,24 @@
 	pointer-events: none;
 }
 
-/* Hide titlebar when top bar is hidden, except when revealed */
-.efs-hide-topbar .titlebar:not(.efs-revealed) {
+/* Hide titlebar when top bar is hidden, except when revealed or when in a modal / popout modal */
+.efs-hide-topbar:not(.is-popout-modal):not(.efs-has-modal) .titlebar:not(.efs-revealed) {
 	opacity: 0;
 	pointer-events: none;
+}
+
+/* When in a popout modal (Settings, etc.) or when a modal is open, keep the titlebar visible and interactive */
+.is-popout-modal .titlebar,
+.efs-has-modal .titlebar {
+	opacity: 1 !important;
+	z-index: 1000 !important;
+}
+
+.is-popout-modal .titlebar .titlebar-button-container,
+.is-popout-modal .titlebar .titlebar-button,
+.efs-has-modal .titlebar .titlebar-button-container,
+.efs-has-modal .titlebar .titlebar-button {
+	pointer-events: auto !important;
 }
 
 /* Reveal individual tab header on hover */

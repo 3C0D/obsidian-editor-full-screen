@@ -42,7 +42,6 @@ export const TAB_HEADER_SELECTOR =
 
 export const RIBBON_SELECTOR = '.workspace-ribbon.side-dock-ribbon.mod-left';
 export const STATUS_BAR_SELECTOR = '.status-bar';
-export const LEFT_SIDEBAR_SELECTOR = '.workspace-sidedock.mod-left';
 export const LEFT_TOGGLE_BTN_SELECTOR = '.sidebar-toggle-button.mod-left';
 
 export const DEFAULT_SETTINGS: EFSSettings = {

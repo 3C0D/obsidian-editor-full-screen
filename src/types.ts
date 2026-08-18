@@ -43,8 +43,7 @@ export enum Side {
   left,
   right,
   bottom,
-  top,
-  none
+  top
 }
 
 export interface EFSSettings {
